@@ -1,0 +1,3 @@
+UtilityLib/Debug/
+UtilityLib/packages/
+UtilityLib/x64/
