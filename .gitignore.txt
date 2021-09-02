@@ -1,5 +1,0 @@
-UtilityLib/Debug/
-UtilityLib/packages/
-UtilityLib/x64/
-UtilTest/Debug/
-UtilTest/x64/

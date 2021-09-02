@@ -12,7 +12,22 @@
 
 
 #include <assert.h>
-
+#include <cstring>
+#include <string>
+#include <cstdio>
+#include <iostream>
+#include <fstream>
+#include <iomanip>
+#include <algorithm>
+#include <cstdlib>
 #include <numeric>
+#include <cmath>
+#include <variant>
+#include <optional>
+#include <functional>
+#include <tuple>
+
+#undef min
+#undef max
 
 #endif //PCH_H
