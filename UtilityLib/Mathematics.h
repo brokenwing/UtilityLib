@@ -10,9 +10,14 @@ extern inline LL modulo( LL base, LL exponent, const LL mod );//Fast Calc of bas
 extern inline LL mulmod( LL a, LL b, const LL mod );//calculates (a * b) % mod taking into account that a * b might overflow
 bool MillerRabin( const LL p, int numOftest, RNG& rng );//large prime check
 bool isPrime( const LL p );//exact prime check
+LL GCD( LL a, LL b );
+std::pair<LL, LL> ExtGCD( LL a, LL b );
 
 template <typename Iter>
 void Normalize( Iter begin, Iter end, int norm = 1 );
+
+template <typename T,typename Multiply>
+T FastExponentiation( const T& base, LL exponent, Multiply mul );//General Fast Exponentiation
 
 //
 //Body
@@ -43,5 +48,23 @@ void Normalize( Iter begin, Iter end, int norm )
 	assert( sum > eps );
 	for( auto i = begin; i != end; ++i )
 		*i /= sum;
+}
+
+template <typename T,typename Multiply>
+T FastExponentiation( const T& base, LL exponent, Multiply mul )
+{
+	if( exponent <= 1 )
+		return base;
+	T x = base;
+	T y = base;
+	--exponent;
+	while( exponent > 0 )
+	{
+		if( ( exponent & 1 ) == 1 )
+			x = mul( x, y );//x*=y
+		y = mul( y, y );//y*=y
+		exponent >>= 1;
+	}
+	return x;
 }
 }

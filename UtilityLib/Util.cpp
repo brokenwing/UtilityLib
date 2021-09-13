@@ -8,12 +8,17 @@ namespace Util
 {
 constexpr bool IsZero( const double v ) noexcept
 {
-	return v < eps&& v > -eps;
+	return v < eps && v > -eps;
 }
 
 constexpr bool EQ( const double a, const double b ) noexcept
 {
 	return IsZero( a - b );
+}
+
+constexpr bool NEQ( const double a, const double b ) noexcept
+{
+	return !EQ( a, b );
 }
 
 constexpr bool LT( const double a, const double b ) noexcept

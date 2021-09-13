@@ -85,3 +85,83 @@ TEST( Math, Normalize_3 )
 	for( int i = 0; i < 3; i++ )
 		EXPECT_DOUBLE_EQ( q[i], target[i] );
 }
+
+TEST( FastExponentiation, _int_ )
+{
+	int r = FastExponentiation<int>( 10, 3, [] ( int a, int b )->int
+	{
+		return a * b;
+	} );
+	EXPECT_EQ( r, 1000 );
+}
+
+TEST( FastExponentiation, _matrix_ )
+{
+	constexpr int n = 3;
+	const int m = 5;
+	typedef std::vector<std::vector<int>> Matrix;
+
+	auto resize = [] ( Matrix& mat, int val = 0 )->void
+	{
+		mat.resize( n );
+		for( auto& e : mat )
+			e.resize( n, val );
+	};
+	Matrix arr;
+	resize( arr, 0 );
+	for( int i = 0; i < n; i++ )
+		for( int j = 0; j < n; j++ )
+			arr[i][j] = ( i + 1 ) * ( j + 1 ) % 7;
+
+	auto matmul = [&resize] ( const Matrix& a, const Matrix& b )->Matrix
+	{
+		Matrix c;
+		resize( c, 0 );
+		for( int i = 0; i < n; i++ )
+			for( int j = 0; j < n; j++ )
+				for( int k = 0; k < n; k++ )
+					c[i][j] += a[i][k] * b[k][j];
+		return c;
+	};
+	auto r1 = FastExponentiation<Matrix>( arr, m, matmul );
+	auto r2 = arr;
+	for( int i = 0; i < m - 1; i++ )
+		r2 = matmul( r2, arr );
+	for( int i = 0; i < n; i++ )
+		for( int j = 0; j < n; j++ )
+			EXPECT_EQ( r1[i][j], r2[i][j] );
+}
+
+TEST( Math, gcd )
+{
+	EXPECT_EQ( GCD( 4, 6 ), 2 );
+	EXPECT_EQ( GCD( 1, 0 ), 1 );
+	EXPECT_EQ( GCD( 0, 1 ), 1 );
+	EXPECT_EQ( GCD( 3, 3 ), 3 );
+	EXPECT_EQ( GCD( 10, 11 ), 1 );
+	EXPECT_EQ( GCD( 17, 101 ), 1 );
+}
+
+TEST( Math, extgcd_1 )
+{
+	int a = 3;
+	int b = 2;
+	auto [x, y] = ExtGCD( a, b );
+	EXPECT_EQ( a * x + b * y, 1 );
+}
+
+TEST( Math, extgcd_2 )
+{
+	int a = 123467;
+	int b = 987654;
+	auto [x, y] = ExtGCD( a, b );
+	EXPECT_EQ( a * x + b * y, 1 );
+}
+
+TEST( Math, extgcd_3 )
+{
+	int a = 10;
+	int b = 24;
+	auto [x, y] = ExtGCD( a, b );
+	EXPECT_EQ( a * x + b * y, 2 );
+}

@@ -13,6 +13,18 @@ TEST( Util, IsZero )
 	EXPECT_TRUE( IsZero( eps * EPS_LOW ) );
 	EXPECT_TRUE( !IsZero( eps * EPS_UP ) );
 }
+TEST( Util, EQ )
+{
+	EXPECT_TRUE( EQ( 0, 0 ) );
+	EXPECT_TRUE( EQ( 0, eps * EPS_LOW ) );
+	EXPECT_TRUE( !EQ( 0, eps * EPS_UP ) );
+}
+TEST( Util, NEQ )
+{
+	EXPECT_TRUE( NEQ( 0, 1 ) );
+	EXPECT_TRUE( NEQ( 0, eps * EPS_UP ) );
+	EXPECT_TRUE( !NEQ( 0, eps * EPS_LOW ) );
+}
 TEST( Util, LT )
 {
 	EXPECT_TRUE( LT( 1, 2 ) );
@@ -142,6 +154,42 @@ TEST( Util_Move, L_3_1 )
 	const int target[5] = { 1,4,2,3,5 };
 	int arr[5] = { 1,2,3,4,5 };
 	Move( arr + 3, arr + 1 );
+	for( int i = 0; i < 5; i++ )
+		EXPECT_EQ( arr[i], target[i] );
+}
+
+TEST( Util_MoveN, R_1_5_3 )
+{
+	const int target[5] = { 1,5,2,3,4 };
+	int arr[5] = { 1,2,3,4,5 };
+	int x = 1;
+	int y = 5;
+	int n = 3;
+	Move( arr + x, arr + y, n );
+	for( int i = 0; i < 5; i++ )
+		EXPECT_EQ( arr[i], target[i] );
+}
+
+TEST( Util_MoveN, R_0_1_3 )
+{
+	const int target[5] = { 1,2,3,4,5 };
+	int arr[5] = { 1,2,3,4,5 };
+	int x = 0;
+	int y = 1;
+	int n = 3;
+	Move( arr + x, arr + y, n );
+	for( int i = 0; i < 5; i++ )
+		EXPECT_EQ( arr[i], target[i] );
+}
+
+TEST( Util_MoveN, L_2_1_2 )
+{
+	const int target[5] = { 1,3,4,2,5 };
+	int arr[5] = { 1,2,3,4,5 };
+	int x = 2;
+	int y = 1;
+	int n = 2;
+	Move( arr + x, arr + y, n );
 	for( int i = 0; i < 5; i++ )
 		EXPECT_EQ( arr[i], target[i] );
 }

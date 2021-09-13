@@ -8,6 +8,7 @@ namespace Util
 //Float Compare
 extern constexpr bool 			IsZero( const double v )		noexcept;
 extern constexpr bool			EQ( const double a, const double b )	noexcept;
+extern constexpr bool			NEQ( const double a, const double b )	noexcept;
 extern constexpr bool			LT( const double a, const double b )	noexcept;
 extern constexpr bool			LE( const double a, const double b )	noexcept;
 extern constexpr bool			GT( const double a, const double b )	noexcept;
@@ -30,6 +31,8 @@ template <typename T>
 inline constexpr void XORswap( T& x, T& y )noexcept;
 template<typename _FwdIt>
 void Move( _FwdIt begin, _FwdIt const end );
+template<typename _FwdIt>
+void Move( _FwdIt begin, _FwdIt const end, const int n );
 
 //ToString
 template <class ... TParams>
@@ -90,6 +93,44 @@ void Move( _FwdIt begin, _FwdIt const end )
 		begin += next;
 	}
 	*begin = val;
+}
+
+template<typename _FwdIt>
+void Move( _FwdIt begin, _FwdIt const end, const int n )
+{
+	thread_local std::vector<std::remove_reference_t<decltype( *begin )>> cache;
+	cache.reserve( n );
+	auto it = begin;
+	for( int i = 0; i < n; i++, ++it )
+		cache.emplace_back( *it );
+	if( begin < end )
+	{
+		for( it = begin + n; it < end; ++it )
+		{
+			*begin = *it;
+			++begin;
+		}
+		for( int i = 0; i < n; i++ )
+		{
+			*begin = cache[i];
+			++begin;
+		}
+	}
+	else
+	{
+		auto pos = begin + ( n - 1 );
+		for( it = begin - 1; it >= end; --it )
+		{
+			*pos = *it;
+			--pos;
+		}
+		for( int i = n - 1; i >= 0; i-- )
+		{
+			*pos = cache[i];
+			--pos;
+		}
+	}
+	cache.clear();
 }
 
 template <class ... TParams>

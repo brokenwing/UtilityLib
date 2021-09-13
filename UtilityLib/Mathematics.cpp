@@ -75,4 +75,24 @@ bool isPrime( const LL p )
 			return false;
 	return true;
 }
+
+LL GCD(LL a,LL b)
+{
+	if( b == 0 )
+		return a;
+	return GCD( b, a % b );
+}
+
+std::pair<LL, LL> ExtGCD( LL a, LL b )
+{
+	if( b == 0 )
+	{
+		return std::make_pair( 1, 0 );
+	}
+	else
+	{
+		auto r = ExtGCD( b, a % b );
+		return std::make_pair( r.second, r.first - a / b * r.second );
+	}
+}
 }
