@@ -169,6 +169,8 @@
   <ItemGroup>
     <ClInclude Include="CommonDef.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="BlockList.h" />
+    <ClInclude Include="VecUtil.h" />
     <ClInclude Include="Matrix.h" />
     <ClInclude Include="Mathematics.h" />
     <ClInclude Include="Timer.h" />
