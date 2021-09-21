@@ -158,3 +158,51 @@ TEST( VecUtil, VecMod )
 	VecMod( arr, arr + 3, 3 );
 	EXPECT_TRUE( EQ( arr, r, 3 ) );
 }
+
+TEST( VecUtil, isAscend )
+{
+	int a[3] = { 1,2,3 };
+	int b[3] = { 1,2,2 };
+	int c[3] = { 1,2,1 };
+	EXPECT_TRUE( isAscend( a, a + 3 ) );
+	EXPECT_TRUE( !isAscend( b, b + 3 ) );
+	EXPECT_TRUE( !isAscend( c, c + 3 ) );
+}
+
+TEST( VecUtil, isAscendEQ )
+{
+	int a[3] = { 1,2,3 };
+	int b[3] = { 1,2,2 };
+	int c[3] = { 1,2,1 };
+	EXPECT_TRUE( isAscendOrEqual( a, a + 3 ) );
+	EXPECT_TRUE( isAscendOrEqual( b, b + 3 ) );
+	EXPECT_TRUE( !isAscendOrEqual( c, c + 3 ) );
+}
+
+TEST( VecUtil, isDescend )
+{
+	int a[3] = { 3,2,1 };
+	int b[3] = { 3,2,2 };
+	int c[3] = { 3,2,4 };
+	EXPECT_TRUE( isDescend( a, a + 3 ) );
+	EXPECT_TRUE( !isDescend( b, b + 3 ) );
+	EXPECT_TRUE( !isDescend( c, c + 3 ) );
+}
+
+TEST( VecUtil, isDescendEQ )
+{
+	int a[3] = { 3,2,1 };
+	int b[3] = { 3,2,2 };
+	int c[3] = { 3,2,4 };
+	EXPECT_TRUE( isDescendOrEqual( a, a + 3 ) );
+	EXPECT_TRUE( isDescendOrEqual( b, b + 3 ) );
+	EXPECT_TRUE( !isDescendOrEqual( c, c + 3 ) );
+}
+
+TEST( VecUtil, isSame )
+{
+	int a[3] = { 1,1,1 };
+	int b[3] = { 1,2,1 };
+	EXPECT_TRUE( isSame( a, a + 3 ) );
+	EXPECT_TRUE( !isSame( b, b + 3 ) );
+}

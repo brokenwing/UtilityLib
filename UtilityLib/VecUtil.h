@@ -17,6 +17,49 @@ bool LE( Iter_1 vec_begin_1, Iter_2 vec_begin_2, size_t n );
 template <typename Iter_1, typename Iter_2>
 bool GE( Iter_1 vec_begin_1, Iter_2 vec_begin_2, size_t n );
 
+template <typename Iter, typename Cmp>
+bool isVectorOrdered( Iter begin, Iter end, Cmp cmp )
+{
+	if( begin == end )
+		return true;
+	auto x = begin;
+	auto y = begin + 1;
+	for( ; y != end; ++x, ++y )
+	{
+		if( !cmp( *x, *y ) )
+			return false;
+	}
+	return true;
+}
+template <typename Iter>
+bool isAscend( Iter begin, Iter end )
+{
+	return isVectorOrdered( begin, end, std::less<>() );
+}
+template <typename Iter>
+bool isAscendOrEqual( Iter begin, Iter end )
+{
+	return isVectorOrdered( begin, end, std::less_equal<>() );
+}
+template <typename Iter>
+bool isDescend( Iter begin, Iter end, bool is_equal = false )
+{
+	return isVectorOrdered( begin, end, std::greater<>() );
+}
+template <typename Iter>
+bool isDescendOrEqual( Iter begin, Iter end, bool is_equal = false )
+{
+	return isVectorOrdered( begin, end, std::greater_equal<>() );
+}
+template <typename Iter>
+bool isSame( Iter begin, Iter end )
+{
+	return isVectorOrdered( begin, end, [] ( const auto& l, const auto& r )->bool
+	{
+		return l == r;
+	} );
+}
+
 //Vector
 
 template <typename Iter, typename T>
