@@ -220,3 +220,105 @@ TEST( PrintVec, Check_123 )
 	std::vector<int> q = { 1,2,3 };
 	EXPECT_NO_THROW( PrintVec( q.begin(), q.end() ) );
 }
+
+TEST( OrderedHash, int_rule_test )
+{
+	EXPECT_EQ( OrderedHash( 1, 2 ), OrderedHash( 1, 2 ) );
+	EXPECT_NE( OrderedHash( 1, 2 ), OrderedHash( 2, 1 ) );
+	EXPECT_NE( OrderedHash( 1, 1 ), OrderedHash( 2, 2 ) );
+}
+
+TEST( OrderedHash, int_small_conflict_test )
+{
+	std::set<size_t> count;
+	int n = 10;
+	int m = 10;
+	int tot = 0;
+	for( int i = -n; i <= n; i++ )
+		for( int j = -m; j <= m; j++ )
+		{
+			count.insert( OrderedHash( i, j ) );
+			++tot;
+		}
+	EXPECT_EQ( count.size(), tot );
+}
+
+TEST( OrderedHash, int_random_conflict_test )
+{
+	std::set<std::pair<int, int>> count;
+	std::set<size_t> hash_count;
+	RNG rng( 0 );
+	int n = 1000;
+	for( int i = 0; i < n; i++ )
+	{
+		auto e = std::make_pair( rng(), rng() );
+		count.insert( e );
+		hash_count.insert( OrderedHash( e.first, e.second ) );
+	}
+	EXPECT_EQ( count.size(), hash_count.size() );
+}
+
+TEST( UnorderedHash, int_rule_test )
+{
+	EXPECT_EQ( UnorderedHash( 1, 2 ), UnorderedHash( 1, 2 ) );
+	EXPECT_NE( UnorderedHash( 1, 1 ), UnorderedHash( 2, 2 ) );
+	//swap eq
+	for( int i = 0; i < 10; i++ )
+		for( int j = i + 1; j < 10; j++ )
+			EXPECT_EQ( UnorderedHash( i, j ), UnorderedHash( j, i ) );
+}
+
+TEST( UnorderedHash, int_small_conflict_test )
+{
+	std::set<size_t> count;
+	int n = 10;
+	int m = 10;
+	int tot = 0;
+	for( int i = -n; i <= n; i++ )
+		for( int j = i; j <= m; j++ )
+		{
+			count.insert( UnorderedHash( i, j ) );
+			//std::cout << i << ' ' << j << ' ' << UnorderedHash( i, j ) << '\n';
+			++tot;
+		}
+	EXPECT_EQ( count.size(), tot );
+}
+
+TEST( UnorderedHash, int_random_conflict_test )
+{
+	std::set<std::pair<int, int>> count;
+	std::set<size_t> hash_count;
+	RNG rng( 0 );
+	int n = 1000;
+	for( int i = 0; i < n; i++ )
+	{
+		auto e = std::make_pair( rng(), rng() );
+		count.insert( e );
+		hash_count.insert( UnorderedHash( e.first, e.second ) );
+	}
+	EXPECT_EQ( count.size(), hash_count.size() );
+}
+
+TEST( OrderedPairHash, is_equal_to_OrderedHash )
+{
+	OrderedPairHash<int, int> h;
+	int n = 10;
+	int m = 10;
+	for( int i = -n; i <= n; i++ )
+		for( int j = -m; j <= m; j++ )
+		{
+			EXPECT_EQ( OrderedHash( i, j ), h( { i,j } ) );
+		}
+}
+
+TEST( UnorderedPairHash, is_equal_to_UnorderedHash )
+{
+	UnorderedPairHash<int, int> h;
+	int n = 10;
+	int m = 10;
+	for( int i = -n; i <= n; i++ )
+		for( int j = -m; j <= m; j++ )
+		{
+			EXPECT_EQ( UnorderedHash( i, j ), h( { i,j } ) );
+		}
+}

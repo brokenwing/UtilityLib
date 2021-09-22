@@ -57,6 +57,40 @@ inline void Println( T&& head, Args&&... args );
 template <typename Iter>
 void PrintVec( Iter begin, Iter end, char delimiter = ' ', char last = '\n' );
 
+//<a,b> != <b,a>; <a,a> != <b,b>; if a!=b
+template <typename T1, typename T2>
+inline size_t OrderedHash( const T1& a, const T2& b )
+{
+	size_t h1 = std::hash<T1>()( a );
+	size_t h2 = std::hash<T2>()( b );
+	return ( h1 + h2 ) ^ ( h1 - h2 );
+}
+//<a,b> == <b,a>; <a,a> != <b,b>
+template <typename T1, typename T2>
+inline size_t UnorderedHash( const T1& a, const T2& b )
+{
+	size_t h1 = std::hash<T1>()( a );
+	size_t h2 = std::hash<T2>()( b );
+	return h1 * h2;// + is not good enough
+}
+
+template <typename T1, typename T2>
+struct OrderedPairHash
+{
+	size_t operator()( const std::pair<T1, T2>& val )const
+	{
+		return OrderedHash( val.first, val.second );
+	}
+};
+template <typename T1, typename T2>
+struct UnorderedPairHash
+{
+	size_t operator()( const std::pair<T1, T2>& val )const
+	{
+		return UnorderedHash( val.first, val.second );
+	}
+};
+
 //
 //	Body
 //
