@@ -86,6 +86,22 @@ TEST( Math, Normalize_3 )
 		EXPECT_DOUBLE_EQ( q[i], target[i] );
 }
 
+TEST( Math, Mean )
+{
+	int arr[] = { 1,2,3 };
+	EXPECT_DOUBLE_EQ( Mean( arr, arr + 3 ), 2 );
+	EXPECT_DOUBLE_EQ( Mean( arr, arr + 1 ), 1 );
+	EXPECT_DOUBLE_EQ( Mean( arr, arr + 2 ), 1.5 );
+}
+
+TEST( Math, Var )
+{
+	int arr[] = { 1,2,3 };
+	EXPECT_DOUBLE_EQ( Variance( arr, arr + 3 ), 2 );
+	EXPECT_DOUBLE_EQ( Variance( arr, arr + 3, 2 ), 2 );
+	EXPECT_DOUBLE_EQ( Variance( arr, arr + 3, 0 ), 9 + 4 + 1 );
+}
+
 TEST( FastExponentiation, _int_ )
 {
 	int r = FastExponentiation<int>( 10, 3, [] ( int a, int b )->int
