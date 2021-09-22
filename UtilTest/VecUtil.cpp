@@ -206,3 +206,29 @@ TEST( VecUtil, isSame )
 	EXPECT_TRUE( isSame( a, a + 3 ) );
 	EXPECT_TRUE( !isSame( b, b + 3 ) );
 }
+
+TEST( VecUtil, VecCount )
+{
+	int arr[] = { 1,1,1,2,3,3 };
+	int n = 6;
+	std::vector<std::pair<int, int>> r = { {1,3},{2,1},{3,2} };
+	auto q = VecCount<int>( arr, arr + n );
+	ASSERT_EQ( q.size(), r.size() );
+	EXPECT_TRUE( EQ( r.begin(), q.begin(), r.size() ) );
+}
+
+TEST( VecUtil, VecCount_empty )
+{
+	int arr[] = { 1,2,3 };
+	auto q = VecCount<int>( arr, arr + 0 );
+	EXPECT_TRUE( q.empty() );
+}
+
+TEST( VecUtil, VecCount_same )
+{
+	int arr[] = { 1,2,3 };
+	auto q = VecCount<int>( arr, arr + 3 );
+	ASSERT_EQ( q.size(), 3 );
+	for( int i = 0; i < 3; i++ )
+		EXPECT_EQ( q[i], std::make_pair( i + 1, 1 ) );
+}

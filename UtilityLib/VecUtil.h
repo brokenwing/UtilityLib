@@ -1,5 +1,6 @@
 #pragma once
 #include "pch.h"
+#include "CommonDef.h"
 
 namespace Util
 {
@@ -18,19 +19,7 @@ template <typename Iter_1, typename Iter_2>
 bool GE( Iter_1 vec_begin_1, Iter_2 vec_begin_2, size_t n );
 
 template <typename Iter, typename Cmp>
-bool isVectorOrdered( Iter begin, Iter end, Cmp cmp )
-{
-	if( begin == end )
-		return true;
-	auto x = begin;
-	auto y = begin + 1;
-	for( ; y != end; ++x, ++y )
-	{
-		if( !cmp( *x, *y ) )
-			return false;
-	}
-	return true;
-}
+bool isVectorOrdered( Iter begin, Iter end, Cmp cmp );
 template <typename Iter>
 bool isAscend( Iter begin, Iter end )
 {
@@ -93,6 +82,19 @@ void VecMod( Iter begin, Iter end, const T& val )
 		*i %= val;
 }
 
+//Merge same element into <elm,count>
+template <typename T, typename Iter, template<typename> class Alloc = DefaultAllocator>
+std::vector<std::pair<T, int>, Alloc<std::pair<T, int>> > VecCount( Iter begin, Iter end )
+{
+	std::vector<std::pair<T, int>, Alloc<std::pair<T, int>> > ret;
+	for( auto i = begin; i != end; ++i )
+		if( ret.empty() || *i != ret.back().first )
+			ret.emplace_back( *i, 1 );
+		else
+			++ret.back().second;
+	return ret;
+}
+
 //
 //body
 //
@@ -149,5 +151,20 @@ template <typename Iter_1, typename Iter_2>
 bool GE( Iter_1 vec_begin_1, Iter_2 vec_begin_2, size_t n )
 {
 	return !LT( vec_begin_1, vec_begin_2, n );
+}
+
+template <typename Iter, typename Cmp>
+bool isVectorOrdered( Iter begin, Iter end, Cmp cmp )
+{
+	if( begin == end )
+		return true;
+	auto x = begin;
+	auto y = begin + 1;
+	for( ; y != end; ++x, ++y )
+	{
+		if( !cmp( *x, *y ) )
+			return false;
+	}
+	return true;
 }
 }

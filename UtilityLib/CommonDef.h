@@ -12,11 +12,11 @@
 #include <string>
 #include <sstream>
 
-namespace LFA
-{
 template<typename T>
 using DefaultAllocator = std::allocator<T>;//LowFragmentationAllocator<T>;
 
+namespace LFA
+{
 template<typename T>
 using deque = std::deque<T, DefaultAllocator<T>>;
 
@@ -58,20 +58,6 @@ using string = std::basic_string<char, std::char_traits<char>, DefaultAllocator<
 using stringstream = std::basic_stringstream<char, std::char_traits<char>, DefaultAllocator<char>>;
 using ostringstream = std::basic_ostringstream<char, std::char_traits<char>, DefaultAllocator<char>>;
 using istringstream = std::basic_istringstream<char, std::char_traits<char>, DefaultAllocator<char>>;
-
-#ifdef _UNICODE
-	typedef wstring _tstring;
-	typedef wstringstream _tstringstream;
-	typedef owstringstream _tostringstream;
-	typedef std::wofstream _tofstream;
-	typedef std::wifstream _tifstream;
-#else
-	typedef string _tstring;
-	typedef stringstream _tstringstream;
-	typedef ostringstream _tostringstream;
-	typedef std::ofstream _tofstream;
-	typedef std::ifstream _tifstream;
-#endif
 }
 
 

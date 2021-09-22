@@ -96,7 +96,7 @@ private:
 	}
 };
 
-template<typename T, template<typename> class _Alloc = LFA::DefaultAllocator>
+template<typename T, template<typename> class _Alloc = DefaultAllocator>
 class BlockList
 {
 public:
