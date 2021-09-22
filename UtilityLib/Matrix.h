@@ -40,7 +40,7 @@ public:
 	static Matrix Diagonal( size_t n )
 	{
 		Matrix mat( n, n, 0 );
-		for( int i = 0; i < n; i++ )
+		for( int i = 0; i < (int)n; i++ )
 			mat.data[i][i] = 1;
 		return mat;
 	}
@@ -76,8 +76,8 @@ public:
 	void Transpose()
 	{
 		auto len = size();
-		for( int i = 0; i < len.first; i++ )
-			for( int j = i + 1; j < len.second; j++ )
+		for( int i = 0; i < (int)len.first; i++ )
+			for( int j = i + 1; j < (int)len.second; j++ )
 				std::swap( data[i][j], data[j][i] );
 	}
 	//Matrix multiplication
@@ -87,9 +87,9 @@ public:
 		auto lb = other.size();
 		assert( la.second == lb.first );
 		Matrix c( la.first, lb.second );
-		for( int i = 0; i < la.first; i++ )
-			for( int j = 0; j < lb.second; j++ )
-				for( int k = 0; k < la.second; k++ )
+		for( int i = 0; i < (int)la.first; i++ )
+			for( int j = 0; j < (int)lb.second; j++ )
+				for( int k = 0; k < (int)la.second; k++ )
 					c[i][j] += data[i][k] * other.data[k][j];
 		return c;
 	}
@@ -101,8 +101,8 @@ public:
 		if( size() != other.size() )
 			return false;
 		auto l = size();
-		for( int i = 0; i < l.first; ++i )
-			for( int j = 0; j < l.second; ++j )
+		for( int i = 0; i < (int)l.first; ++i )
+			for( int j = 0; j < (int)l.second; ++j )
 				if( !( data[i][j] == other.data[i][j] ) )
 					return false;
 		return true;
@@ -205,8 +205,8 @@ private:
 		assert( a.size() == b.size() );
 		assert( a.size() == ret.size() );
 		auto l = ret.size();
-		for( int i = 0; i < l.first; ++i )
-			for( int j = 0; j < l.second; ++j )
+		for( int i = 0; i < (int)l.first; ++i )
+			for( int j = 0; j < (int)l.second; ++j )
 				ret.data[i][j] = func( a.data[i][j], b.data[i][j] );
 	}
 };

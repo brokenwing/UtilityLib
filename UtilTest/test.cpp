@@ -311,6 +311,18 @@ TEST( OrderedPairHash, is_equal_to_OrderedHash )
 		}
 }
 
+TEST( OrderedPairHash, unordered_map )
+{
+	std::unordered_map<std::pair<int, int>, int, OrderedPairHash<int, int>> map;
+	map[{1, 2}] = 3;
+	map[{2, 3}] = 4;
+	map[{1, 2}]++;
+	auto r1 = map[{1, 2}];
+	auto r2 = map[{2, 3}];
+	EXPECT_EQ( r1, 4 );
+	EXPECT_EQ( r2, 4 );
+}
+
 TEST( UnorderedPairHash, is_equal_to_UnorderedHash )
 {
 	UnorderedPairHash<int, int> h;
@@ -321,4 +333,70 @@ TEST( UnorderedPairHash, is_equal_to_UnorderedHash )
 		{
 			EXPECT_EQ( UnorderedHash( i, j ), h( { i,j } ) );
 		}
+}
+
+TEST( UnorderedPairHash, unordered_map )
+{
+	std::unordered_map<std::pair<int, int>, int, UnorderedPairHash<int, int>> map;
+}
+
+TEST( TupleHash, check_rule_1 )
+{
+	std::tuple<int> v = { 1 };
+	TupleHash<decltype( v )> hash;
+	auto r1 = hash( v );
+	EXPECT_EQ( r1, std::hash<int>()( 1 ) );
+}
+
+TEST( TupleHash, check_stable )
+{
+	std::tuple<int,int,int> v = { 1,2,3 };
+	TupleHash<decltype( v )> hash;
+	EXPECT_EQ( hash( v ), hash( v ) );
+}
+
+TEST( TupleHash, check_rule_swap )
+{
+	TupleHash<std::tuple<int, int>> hash;
+	int n = 10;
+	for( int i = 0; i < n; i++ )
+		for( int j = i + 1; j < n; j++ )
+		{
+			auto r1 = hash( { i,j } );
+			auto r2 = hash( { j,i } );
+			EXPECT_NE( r1, r2 );
+		}
+}
+
+TEST( TupleHash, int_small_conflict_test )
+{
+	std::tuple<int, int, int> v;
+	TupleHash<decltype( v )> hash;
+	std::set<size_t> count;
+	int n = 5;
+	for( int i = 0; i < n; i++ )
+		for( int j = 0; j < n; j++ )
+			for( int k = 0; k < n; k++ )
+			{
+				v = { i,j,k };
+				count.insert( hash( v ) );
+			}
+	EXPECT_EQ( count.size(), n * n * n );
+}
+
+TEST( TupleHash, int_random_conflict_test )
+{
+	std::tuple<int, int, int> v;
+	TupleHash<decltype( v )> hash;
+	std::set<size_t> hash_count;
+	std::set<decltype( v )> count;
+	RNG rng( 0 );
+	int n = 1000;
+	for( int i = 0; i < n; i++ )
+	{
+		v = { rng(),rng(),rng() };
+		hash_count.insert( hash( v ) );
+		count.insert( v );
+	}
+	EXPECT_EQ( count.size(), hash_count.size() );
 }
