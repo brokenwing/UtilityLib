@@ -95,6 +95,19 @@ std::vector<std::pair<T, int>, Alloc<std::pair<T, int>> > VecCount( Iter begin, 
 	return ret;
 }
 
+template <typename T, typename Iter>
+size_t VecHash( Iter begin, Iter end )
+{
+	size_t val = 0;
+	std::hash<T> h;
+	for( auto i = begin; i != end; ++i )
+	{
+		size_t nxt = h( *i );
+		val = val * nxt + nxt;
+	}
+	return val;
+}
+
 //
 //body
 //

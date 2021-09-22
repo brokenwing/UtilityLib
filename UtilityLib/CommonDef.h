@@ -12,6 +12,8 @@
 #include <string>
 #include <sstream>
 
+#define FOR(i,a,b) for(int i=a; i<b; i++)
+
 template<typename T>
 using DefaultAllocator = std::allocator<T>;//LowFragmentationAllocator<T>;
 

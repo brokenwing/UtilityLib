@@ -338,6 +338,7 @@ TEST( UnorderedPairHash, is_equal_to_UnorderedHash )
 TEST( UnorderedPairHash, unordered_map )
 {
 	std::unordered_map<std::pair<int, int>, int, UnorderedPairHash<int, int>> map;
+	map[{1, 2}] = 1;
 }
 
 TEST( TupleHash, check_rule_1 )
@@ -368,7 +369,7 @@ TEST( TupleHash, check_rule_swap )
 		}
 }
 
-TEST( TupleHash, int_small_conflict_test )
+TEST( TupleHash, int_small_conflict_test_3d )
 {
 	std::tuple<int, int, int> v;
 	TupleHash<decltype( v )> hash;
@@ -382,6 +383,23 @@ TEST( TupleHash, int_small_conflict_test )
 				count.insert( hash( v ) );
 			}
 	EXPECT_EQ( count.size(), n * n * n );
+}
+
+TEST( TupleHash, int_small_conflict_test_4d )
+{
+	std::tuple<int, int, int, int> v;
+	TupleHash<decltype( v )> hash;
+	std::set<size_t> count;
+	int n = 5;
+	for( int i = 0; i < n; i++ )
+		for( int j = 0; j < n; j++ )
+			for( int k = 0; k < n; k++ )
+				for( int l = 0; l < n; l++ )
+				{
+					v = { i,j,k,l };
+					count.insert( hash( v ) );
+				}
+	EXPECT_EQ( count.size(), n * n * n * n );
 }
 
 TEST( TupleHash, int_random_conflict_test )
@@ -399,4 +417,17 @@ TEST( TupleHash, int_random_conflict_test )
 		count.insert( v );
 	}
 	EXPECT_EQ( count.size(), hash_count.size() );
+}
+
+TEST( TupleHash, diff_type )
+{
+	std::tuple<int, double, long long> v = { 1,2.3,123456789000 };
+	EXPECT_NO_THROW( TupleHash<decltype( v )>()( v ) );
+}
+
+TEST( TupleHash, unordered_map )
+{
+	typedef std::tuple<int, int, int> tup;
+	std::unordered_map<tup, int, TupleHash<tup>> map;
+	map[{1, 2, 3}] = 1;
 }

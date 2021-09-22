@@ -92,29 +92,7 @@ struct UnorderedPairHash
 };
 //return h(v1) <+> h(v2) <+> h(v3) for tuple(v1,v2,v3)
 template <typename T>
-struct TupleHash
-{
-	template <size_t Index>
-	size_t Hash( const T& val )const
-	{
-		static_assert( Index >= 0 );
-		static_assert( Index < std::tuple_size_v<T> );
-		//Get type by std::tuple_element_t<Index, T>
-		size_t h2 = std::hash<std::tuple_element_t<Index, T>>()( std::get<Index>( val ) );
-		if constexpr( Index == 0 )
-			return h2;
-		else
-		{
-			size_t h1 = Hash<Index - 1>( val );
-			return  h1 * h2 + h2;
-		}
-	}
-	size_t operator()( const T& val )const
-	{
-		return Hash<std::tuple_size_v<T> -1>( val );
-	}
-};
-
+struct TupleHash;
 
 
 
@@ -245,4 +223,28 @@ void PrintVec( Iter begin, Iter end, char delimiter, char last )
 		std::wcout << delimiter << *i;
 	std::wcout << last;
 }
+
+template <typename T>
+struct TupleHash
+{
+	template <size_t Index>
+	size_t Hash( const T& val )const
+	{
+		static_assert( Index >= 0 );
+		static_assert( Index < std::tuple_size_v<T> );
+		//Get type by std::tuple_element_t<Index, T>
+		size_t h2 = std::hash<std::tuple_element_t<Index, T>>()( std::get<Index>( val ) );
+		if constexpr( Index == 0 )
+			return h2;
+		else
+		{
+			size_t h1 = Hash<Index - 1>( val );
+			return  h1 * h2 + h2;
+		}
+	}
+	size_t operator()( const T& val )const
+	{
+		return Hash<std::tuple_size_v<T> -1>( val );
+	}
+};
 }

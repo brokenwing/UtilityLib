@@ -232,3 +232,38 @@ TEST( VecUtil, VecCount_same )
 	for( int i = 0; i < 3; i++ )
 		EXPECT_EQ( q[i], std::make_pair( i + 1, 1 ) );
 }
+
+TEST( VecHash, check_1 )
+{
+	int n = 1;
+	int arr[] = { 1 };
+	auto r = VecHash<int>( arr, arr + n );
+	EXPECT_EQ( r, std::hash<int>()( 1 ) );
+}
+
+TEST( VecHash, check_stable )
+{
+	int n = 3;
+	int arr[] = { 1,2,3 };
+	auto r1 = VecHash<int>( arr, arr + n );
+	auto r2 = VecHash<int>( arr, arr + n );
+	EXPECT_EQ( r1, r2 );
+}
+
+TEST( VecHash, small_conflict_test )
+{
+	std::set<size_t> count;
+	int n = 5;
+	int len = 5;
+	FOR( i, 0, n )
+		FOR( j, 0, n )
+			FOR( k, 0, n )
+				FOR( a, 0, n )
+					FOR( b, 0, n )
+	{
+		int arr[] = { i,j,k,a,b };
+		auto r = VecHash<int>( arr, arr + len );
+		count.insert( r );
+	}
+	EXPECT_EQ( count.size(), n* n* n* n* n );
+}
