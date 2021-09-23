@@ -1,10 +1,13 @@
 #pragma once
 #include "pch.h"
+#include "CommonDef.h"
 #include <vector>
 
 namespace Util
 {
-template <typename T, typename Container = std::vector<std::vector<typename T>>>
+template <typename T,
+	typename RowContainer = std::vector<T, DefaultAllocator<T>>,
+	typename Container = std::vector<RowContainer, DefaultAllocator<RowContainer> >>
 class Matrix
 {
 protected:
@@ -76,9 +79,20 @@ public:
 	void Transpose()
 	{
 		auto len = size();
-		for( int i = 0; i < (int)len.first; i++ )
-			for( int j = i + 1; j < (int)len.second; j++ )
-				std::swap( data[i][j], data[j][i] );
+		if( len.first == len.second )
+		{
+			for( int i = 0; i < (int)len.first; i++ )
+				for( int j = i + 1; j < (int)len.second; j++ )
+					std::swap( data[i][j], data[j][i] );
+		}
+		else
+		{
+			Matrix tmp( len.second, len.first );
+			for( int i = 0; i < (int)len.first; i++ )
+				for( int j = 0; j < (int)len.second; j++ )
+					tmp.data[j][i] = data[i][j];
+			this->swap( tmp );
+		}
 	}
 	//Matrix multiplication
 	Matrix MatMul( const Matrix& other )const
@@ -188,7 +202,13 @@ public:
 	}
 
 protected:
-	bool selfcheck()const;
+	bool selfcheck() const
+	{
+		std::set<std::size_t> len;
+		for( auto& e : data )
+			len.insert( e.size() );
+		return len.size() <= 1;
+	}
 
 private:
 	template<typename Func>
@@ -210,13 +230,4 @@ private:
 				ret.data[i][j] = func( a.data[i][j], b.data[i][j] );
 	}
 };
-
-template<typename T, typename Container>
-inline bool Matrix<T, Container>::selfcheck() const
-{
-	std::set<std::size_t> len;
-	for( auto& e : data )
-		len.insert( e.size() );
-	return len.size() <= 1;
-}
 }

@@ -267,3 +267,33 @@ TEST( VecHash, small_conflict_test )
 	}
 	EXPECT_EQ( count.size(), n* n* n* n* n );
 }
+
+TEST( SubVec, pick_all )
+{
+	int arr[] = { 1,2,3,4 };
+	int idx[] = { 0,1,2,3 };
+	int result[4] = { 0 };
+	int check[] = { 1,2,3,4 };
+	SubVec( arr, idx, result, 4 );
+	EXPECT_TRUE( EQ( result, check, 4 ) );
+}
+
+TEST( SubVec, pick_partial )
+{
+	int arr[] = { 1,2,3,4 };
+	int idx[] = { 1,2 };
+	int result[4] = { 0 };
+	int check[] = { 2,3 };
+	SubVec( arr, idx, result, 2 );
+	EXPECT_TRUE( EQ( result, check, 2 ) );
+}
+
+TEST( SubVec, pick_repeat )
+{
+	int arr[] = { 1,2,3,4 };
+	int idx[] = { 0,0,0 };
+	int result[4] = { 0 };
+	int check[] = { 1,1,1 };
+	SubVec( arr, idx, result, 3 );
+	EXPECT_TRUE( EQ( result, check, 3 ) );
+}

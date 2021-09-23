@@ -112,9 +112,9 @@ TEST( Matrix, equal )
 	EXPECT_FALSE( mat1 == Matrix<int>() );
 }
 
-TEST( Matrix, transpose )
+TEST( Matrix, transpose_nn )
 {
-	Matrix<int> mat(2,2);
+	Matrix<int> mat( 2, 2 );
 	mat[0][0] = 1;
 	mat[0][1] = 2;
 	mat[1][0] = 3;
@@ -124,6 +124,31 @@ TEST( Matrix, transpose )
 	EXPECT_EQ( mat[1][1], 4 );
 	EXPECT_EQ( mat[0][1], 3 );
 	EXPECT_EQ( mat[1][0], 2 );
+}
+
+TEST( Matrix, transpose_nm )
+{
+	//1 2 3
+	//4 5 6
+	Matrix<int> mat( 2, 3 );
+	mat[0][0] = 1;
+	mat[0][1] = 2;
+	mat[0][2] = 3;
+	mat[1][0] = 4;
+	mat[1][1] = 5;
+	mat[1][2] = 6;
+	mat.Transpose();
+	ASSERT_EQ( mat.size().first, 3 );
+	ASSERT_EQ( mat.size().second, 2 );
+	//1 4
+	//2 5
+	//3 6
+	EXPECT_EQ( mat[0][0], 1 );
+	EXPECT_EQ( mat[1][0], 2 );
+	EXPECT_EQ( mat[2][0], 3 );
+	EXPECT_EQ( mat[0][1], 4 );
+	EXPECT_EQ( mat[1][1], 5 );
+	EXPECT_EQ( mat[2][1], 6 );
 }
 
 TEST( Matrix, MatrixPlus )
