@@ -95,4 +95,35 @@ std::pair<LL, LL> ExtGCD( LL a, LL b )
 		return std::make_pair( r.second, r.first - a / b * r.second );
 	}
 }
+LL Inverse( const LL a, const LL n )
+{
+	auto [x, y] = ExtGCD( a, n );
+	if( x < 0 )
+		x += n;
+	return x;
+}
+
+//n!
+LL Factorial( int n )
+{
+	LL ret = 1;
+	while( n > 0 )
+		ret *= n--;
+	return ret;
+}
+
+//P(n,m):= n*(n-1)*...*(n-m+1)
+LL Permutation( int n, int m )
+{
+	LL ret = 1;
+	for( int i = std::max(2,n - m + 1); i <= n; i++ )
+		ret *= i;
+	return ret;
+}
+
+//C(n,m):= P(n,m)/m!
+LL Combination( int n, int m )
+{
+	return Permutation( n, m ) / Factorial( m );
+}
 }

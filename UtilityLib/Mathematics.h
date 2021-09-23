@@ -5,13 +5,24 @@
 namespace Util::Math
 {
 typedef std::int64_t LL;
-
-extern inline LL modulo( LL base, LL exponent, const LL mod );//Fast Calc of base^exponent % mod
-extern inline LL mulmod( LL a, LL b, const LL mod );//calculates (a * b) % mod taking into account that a * b might overflow
-bool MillerRabin( const LL p, int numOftest, RNG& rng );//large prime check
-bool isPrime( const LL p );//exact prime check
+//Fast Calc of base^exponent % mod
+extern inline LL modulo( LL base, LL exponent, const LL mod );
+//calculates (a * b) % mod taking into account that a * b might overflow
+extern inline LL mulmod( LL a, LL b, const LL mod );
+//large prime check
+bool MillerRabin( const LL p, int numOftest, RNG& rng );
+//exact prime check
+bool isPrime( const LL p );
 LL GCD( LL a, LL b );
 std::pair<LL, LL> ExtGCD( LL a, LL b );
+//find x s.t. a*x %n == gcd(a,n)
+LL Inverse( const LL a, const LL n );
+//n!
+LL Factorial( int n );
+//P(n,m):= n*(n-1)*...*(n-m+1)
+LL Permutation( int n, int m );
+//C(n,m):= P(n,m)/m!
+LL Combination( int n, int m );
 
 template <typename Iter>
 void Normalize( Iter begin, Iter end, int norm = 1 );

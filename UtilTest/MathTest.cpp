@@ -181,3 +181,51 @@ TEST( Math, extgcd_3 )
 	auto [x, y] = ExtGCD( a, b );
 	EXPECT_EQ( a * x + b * y, 2 );
 }
+
+TEST( Math, inverse )
+{
+	EXPECT_EQ( Inverse(3,10),7 );
+	EXPECT_EQ( Inverse( 9, 11 ) * 9 % 11, 1 );
+}
+
+TEST( Math, Factorial )
+{
+	EXPECT_EQ( Factorial( 0 ), 1 );
+	EXPECT_EQ( Factorial( 1 ), 1 );
+	EXPECT_EQ( Factorial( 2 ), 2 );
+	EXPECT_EQ( Factorial( 3 ), 6 );
+	EXPECT_EQ( Factorial( 4 ), 24 );
+	EXPECT_EQ( Factorial( 5 ), 120 );
+}
+
+TEST( Math, Permutation_bound )
+{
+	EXPECT_EQ( Permutation( 0, 0 ), 1 );
+	EXPECT_EQ( Permutation( 1, 0 ), 1 );
+	EXPECT_EQ( Permutation( 0, 1 ), 1 );
+	EXPECT_EQ( Permutation( 1, 1 ), 1 );
+}
+
+TEST( Math, Permutation_basic )
+{
+	EXPECT_EQ( Permutation( 4, 4 ), Factorial( 4 ) );
+	EXPECT_EQ( Permutation( 10, 2 ), 90 );
+	EXPECT_EQ( Permutation( 10, 3 ), 720 );
+}
+
+TEST( Math, Combination_bound )
+{
+	EXPECT_EQ( Combination( 0, 0 ), 1 );
+	EXPECT_EQ( Combination( 1, 0 ), 1 );
+	EXPECT_EQ( Combination( 0, 1 ), 1 );
+	EXPECT_EQ( Combination( 1, 1 ), 1 );
+}
+
+TEST( Math, Combination_basic )
+{
+	EXPECT_EQ( Combination( 7, 3 ), Combination( 7, 4 ) );
+	EXPECT_EQ( Combination( 10, 2 ), 45 );
+	EXPECT_EQ( Combination( 55, 0 ), 1 );
+	EXPECT_EQ( Combination( 55, 1 ), 55 );
+}
+
