@@ -178,3 +178,31 @@ TEST( LongInt, mul_small_6 )
 	auto s = ( a * 0 ).ToString();
 	EXPECT_EQ( s, "0" );
 }
+TEST( LongInt, mul_large_1 )
+{
+	LongInt a( "1 0" );
+	LongInt b( "1 0" );
+	auto s = ( a * b ).ToString( ' ' );
+	EXPECT_EQ( s, "1 00000000 00000000" );
+}
+TEST( LongInt, mul_large_2 )
+{
+	LongInt a( "123 45678909 87654321" );
+	LongInt b( "1 0 0" );
+	auto s = ( a * b ).ToString( ' ' );
+	EXPECT_EQ( s, "123 45678909 87654321 00000000 00000000" );
+}
+TEST( LongInt, mul_large_3 )
+{
+	LongInt a( "123 45678909 87654321" );
+	LongInt b( "1 0 0" );
+	auto s = ( b * a ).ToString( ' ' );
+	EXPECT_EQ( s, "123 45678909 87654321 00000000 00000000" );
+}
+TEST( LongInt, mul_large_4 )
+{
+	LongInt a( "45678909 87654321" );
+	LongInt b( "45678909 87654321" );
+	auto s = ( b * a ).ToString();
+	EXPECT_EQ( s, "20865628075093568166437789971041" );
+}

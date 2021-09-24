@@ -70,6 +70,8 @@ public:
 protected:
 	bool check()const
 	{
+		if( n < 1 )
+			return false;
 		for( int i = 0; i < n; i++ )
 			if( m_val[i] < 0 || m_val[i] >= RADIX )
 				return false;
@@ -122,12 +124,29 @@ protected:
 	{
 		return !( *this == other );
 	}
+	// *= RADIX^bit
+	_LongInt& operator<<=( int bit )
+	{
+		if( bit ==1 )
+		{
+			m_val.insert( m_val.begin(), 0 );
+			n += bit;
+		}
+		else if( bit > 1 )
+		{
+			thread_local LFA::vector<int> tmp;
+			tmp.assign( bit, 0 );
+			m_val.insert( m_val.begin(), tmp.begin(), tmp.end() );
+			n += bit;
+		}
+		return *this;
+	}
 
 	static void UnsignedPlus( const _LongInt & a, const _LongInt & b, _LongInt & c )
 	{
 		const _LongInt* n_long = ( a.n > b.n ) ? &a : &b;
 		const _LongInt* n_short = ( a.n > b.n ) ? &b : &a;
-		c.m_val.resize( (size_t)n_long->n + 1, 0 );
+		c.m_val.assign( (size_t)n_long->n + 1, 0 );
 		c.n = n_long->n;
 
 		unsigned int offset = 0;
@@ -160,7 +179,7 @@ protected:
 		assert( a >= b );
 		const _LongInt* n_long = &a;
 		const _LongInt* n_short = &b;
-		c.m_val.resize( n_long->n, 0 );
+		c.m_val.assign( n_long->n, 0 );
 		c.n = n_long->n;
 
 		int offset = 0;
@@ -212,11 +231,10 @@ protected:
 	
 	static void UnsignedMultiply( const _LongInt& a, const unsigned int b, _LongInt& c )
 	{
-		if( b == 0 )
+		if( b == 0 || a == _LongInt( 0 ) )
 		{
 			c.n = 1;
-			c.m_val.clear();
-			c.m_val.resize( 1, 0 );
+			c.m_val.assign( 1, 0 );
 			return;
 		}
 		if( b == 1 )
@@ -226,7 +244,7 @@ protected:
 			return;
 		}
 		assert( b >= 0 && b < RADIX );
-		c.m_val.resize( a.n + 1, 0 );
+		c.m_val.assign( (size_t)a.n + 1, 0 );
 		c.n = a.n;
 		ULL offset = 0;
 		auto it = c.m_val.begin();
@@ -247,7 +265,27 @@ protected:
 	}
 	static void UnsignedMultiply( const _LongInt& a, const _LongInt &b, _LongInt& c )
 	{
-
+		const _LongInt* n_long = ( a.n > b.n ) ? &a : &b;
+		const _LongInt* n_short = ( a.n > b.n ) ? &b : &a;
+		c = _LongInt( 0 );
+		thread_local _LongInt tmp;
+		tmp.m_val.reserve( a.n + b.n );
+		thread_local _LongInt sum;
+		sum.m_val.reserve( a.n + b.n );
+		int ct = 0;
+		for( auto i : n_short->m_val )
+		{
+			tmp = _LongInt();
+			UnsignedMultiply( *n_long, i, tmp );
+			if( tmp != _LongInt( 0 ) )
+			{
+				tmp <<= ct;// *= RADIX
+				UnsignedPlus( tmp, c, sum );
+				c.m_val.swap( sum.m_val );
+				std::swap( c.n, sum.n );
+			}
+			ct++;
+		}
 		assert( c.check() );
 	}
 };
@@ -302,6 +340,13 @@ public:
 		LongInt ret;
 		UnsignedMultiply( *this, abs( other ), ret );
 		ret.sign = this->sign && ( other >= 0 );
+		return ret;
+	}
+	LongInt operator*( const LongInt &other )const
+	{
+		LongInt ret;
+		UnsignedMultiply( *this, other, ret );
+		ret.sign = this->sign && other.sign;
 		return ret;
 	}
 private:
