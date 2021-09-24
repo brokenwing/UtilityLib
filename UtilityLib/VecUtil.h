@@ -83,7 +83,7 @@ void VecMod( Iter begin, Iter end, const T& val )
 }
 //index start from 0
 template <typename Iter_1,typename Iter_2>
-void SubVec( Iter_1 vec_begin, Iter_2 idx_begin, Iter_1 result_begin, size_t n)
+inline void SubVec( Iter_1 vec_begin, Iter_2 idx_begin, Iter_1 result_begin, size_t n)
 {
 	static_assert( std::_Is_random_iter_v<Iter_1> || std::is_array_v<Iter_1> );
 	for( int i = 0; i < n; i++ )
@@ -94,10 +94,10 @@ void SubVec( Iter_1 vec_begin, Iter_2 idx_begin, Iter_1 result_begin, size_t n)
 }
 
 //Merge same element into <elm,count>
-template <typename T, typename Iter, template<typename> class Alloc = DefaultAllocator>
-std::vector<std::pair<T, int>, Alloc<std::pair<T, int>> > VecCount( Iter begin, Iter end )
+template <typename T, typename Iter>
+inline LFA::vector<std::pair<T, int>> VecCount( Iter begin, Iter end )
 {
-	std::vector<std::pair<T, int>, Alloc<std::pair<T, int>> > ret;
+	LFA::vector<std::pair<T, int>> ret;
 	for( auto i = begin; i != end; ++i )
 		if( ret.empty() || *i != ret.back().first )
 			ret.emplace_back( *i, 1 );
@@ -107,7 +107,7 @@ std::vector<std::pair<T, int>, Alloc<std::pair<T, int>> > VecCount( Iter begin, 
 }
 
 template <typename T, typename Iter>
-size_t VecHash( Iter begin, Iter end )
+inline size_t VecHash( Iter begin, Iter end )
 {
 	size_t val = 0;
 	std::hash<T> h;
@@ -117,6 +117,15 @@ size_t VecHash( Iter begin, Iter end )
 		val = val * nxt + nxt;
 	}
 	return val;
+}
+
+inline LFA::vector<int> GenerateVec( int n, int st = 0, int step = 1 )
+{
+	LFA::vector<int> ret;
+	ret.reserve( n );
+	FOR( i, 0, n )
+		ret.emplace_back( st + i * step );
+	return ret;
 }
 
 //

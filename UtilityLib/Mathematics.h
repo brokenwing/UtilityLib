@@ -16,13 +16,13 @@ bool isPrime( const LL p );
 LL GCD( LL a, LL b );
 std::pair<LL, LL> ExtGCD( LL a, LL b );
 //find x s.t. a*x %n == gcd(a,n)
-LL Inverse( const LL a, const LL n );
+extern inline LL Inverse( const LL a, const LL n );
 //n!
-LL Factorial( int n );
+extern inline LL Factorial( int n );
 //P(n,m):= n*(n-1)*...*(n-m+1)
-LL Permutation( int n, int m );
+extern inline LL Permutation( int n, int m );
 //C(n,m):= P(n,m)/m!
-LL Combination( int n, int m );
+extern inline LL Combination( int n, int m );
 
 template <typename Iter>
 void Normalize( Iter begin, Iter end, int norm = 1 );
@@ -33,7 +33,7 @@ inline double Mean( Iter begin, Iter end )
 	return std::accumulate<Iter, double>( begin, end, 0.0 ) / n;
 }
 template <typename Iter>
-double Variance( Iter begin, Iter end, double mean )
+inline double Variance( Iter begin, Iter end, double mean )
 {
 	double ret = 0;
 	for( auto i = begin; i != end; ++i )

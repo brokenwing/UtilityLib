@@ -297,3 +297,22 @@ TEST( SubVec, pick_repeat )
 	SubVec( arr, idx, result, 3 );
 	EXPECT_TRUE( EQ( result, check, 3 ) );
 }
+
+TEST( GenerateVec, n )
+{
+	auto r1 = GenerateVec( 4 );
+	int r2[] = { 0,1,2,3 };
+	EXPECT_TRUE( EQ( r1.begin(), r2, 4 ) );
+}
+TEST( GenerateVec, n_st )
+{
+	auto r1 = GenerateVec( 4, 1 );
+	int r2[] = { 1,2,3,4 };
+	EXPECT_TRUE( EQ( r1.begin(), r2, 4 ) );
+}
+TEST( GenerateVec, n_st_step )
+{
+	auto r1 = GenerateVec( 4, 0, 2 );
+	int r2[] = { 0,2,4,6 };
+	EXPECT_TRUE( EQ( r1.begin(), r2, 4 ) );
+}
