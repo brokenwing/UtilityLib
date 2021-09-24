@@ -467,3 +467,168 @@ TEST( LongInt, mod_int_6)
 	EXPECT_EQ( s, "-1" );
 }
 
+TEST( LongIntCompare, eq1)
+{
+	LongInt a( "123 456" );
+	EXPECT_TRUE( a == a );
+}
+TEST( LongIntCompare, eq2)
+{
+	LongInt a( "123 456" );
+	LongInt b( "-123 456" );
+	EXPECT_FALSE( a == b );
+}
+TEST( LongIntCompare, eq3)
+{
+	LongInt a( "-123 456" );
+	LongInt b( "123 456" );
+	EXPECT_FALSE( a == b );
+}
+TEST( LongIntCompare, eq4)
+{
+	LongInt a( "-123 456" );
+	EXPECT_TRUE( a == a );
+}
+
+TEST( LongIntCompare, neq1)
+{
+	LongInt a( "123 456" );
+	EXPECT_FALSE( a != a );
+}
+TEST( LongIntCompare, neq2)
+{
+	LongInt a( "123 456" );
+	LongInt b( "-123 456" );
+	EXPECT_TRUE( a != b );
+}
+TEST( LongIntCompare, neq3)
+{
+	LongInt a( "-123 456" );
+	LongInt b( "123 456" );
+	EXPECT_TRUE( a != b );
+}
+TEST( LongIntCompare, neq4)
+{
+	LongInt a( "-123 456" );
+	EXPECT_FALSE( a != a );
+}
+
+TEST( LongIntCompare, less1)
+{
+	LongInt a( "123 456" );
+	EXPECT_FALSE( a < a );
+}
+TEST( LongIntCompare, less2)
+{
+	LongInt a( "-123 456" );
+	EXPECT_FALSE( a < a );
+}
+TEST( LongIntCompare, less3)
+{
+	LongInt a( "123 456" );
+	LongInt b( "-123 456" );
+	EXPECT_FALSE( a < b );
+	EXPECT_TRUE( b < a );
+}
+TEST( LongIntCompare, less4)
+{
+	LongInt a( "123 456" );
+	LongInt b( "123 457" );
+	EXPECT_TRUE( a < b );
+}
+TEST( LongIntCompare, less5)
+{
+	LongInt a( "-123 456" );
+	LongInt b( "-123 457" );
+	EXPECT_TRUE( b < a );
+}
+
+TEST( LongIntCompare, greater1)
+{
+	LongInt a( "123 456" );
+	EXPECT_FALSE( a > a );
+}
+TEST( LongIntCompare, greater2)
+{
+	LongInt a( "-123 456" );
+	EXPECT_FALSE( a > a );
+}
+TEST( LongIntCompare, greater3)
+{
+	LongInt a( "123 456" );
+	LongInt b( "-123 456" );
+	EXPECT_TRUE( a > b );
+	EXPECT_FALSE( b > a );
+}
+TEST( LongIntCompare, greater4)
+{
+	LongInt a( "123 456" );
+	LongInt b( "123 457" );
+	EXPECT_TRUE( b > a );
+}
+TEST( LongIntCompare, greater5)
+{
+	LongInt a( "-123 456" );
+	LongInt b( "-123 457" );
+	EXPECT_TRUE( a > b );
+}
+
+TEST( LongIntCompare, LE1)
+{
+	LongInt a( "123 456" );
+	EXPECT_TRUE( a <= a );
+}
+TEST( LongIntCompare, LE2)
+{
+	LongInt a( "-123 456" );
+	EXPECT_TRUE( a <= a );
+}
+TEST( LongIntCompare, LE3)
+{
+	LongInt a( "123 456" );
+	LongInt b( "-123 456" );
+	EXPECT_FALSE( a <= b );
+	EXPECT_TRUE( b <= a );
+}
+TEST( LongIntCompare, LE4)
+{
+	LongInt a( "123 456" );
+	LongInt b( "123 457" );
+	EXPECT_TRUE( a <= b );
+}
+TEST( LongIntCompare, LE5)
+{
+	LongInt a( "-123 456" );
+	LongInt b( "-123 457" );
+	EXPECT_TRUE( b <= a );
+}
+
+TEST( LongIntCompare, GE1)
+{
+	LongInt a( "123 456" );
+	EXPECT_TRUE( a >= a );
+}
+TEST( LongIntCompare, GE2)
+{
+	LongInt a( "-123 456" );
+	EXPECT_TRUE( a >= a );
+}
+TEST( LongIntCompare, GE3)
+{
+	LongInt a( "123 456" );
+	LongInt b( "-123 456" );
+	EXPECT_TRUE( a >= b );
+	EXPECT_FALSE( b >= a );
+}
+TEST( LongIntCompare, GE4)
+{
+	LongInt a( "123 456" );
+	LongInt b( "123 457" );
+	EXPECT_TRUE( b >= a );
+}
+TEST( LongIntCompare, GE5)
+{
+	LongInt a( "-123 456" );
+	LongInt b( "-123 457" );
+	EXPECT_TRUE( a >= b );
+}

@@ -9,9 +9,10 @@ namespace Util
 template<unsigned int _RADIX>
 class _LongInt
 {
+public:
+	static constexpr unsigned int RADIX = _RADIX;
 protected:
 	typedef unsigned long long ULL;
-	static constexpr unsigned int RADIX = _RADIX;
 
 	bool sign = true;//postive
 	int n = 1;//有效长度
@@ -71,7 +72,12 @@ public:
 	{}
 	unsigned int GetHigh( int nth = 1 )const
 	{
+		assert( n >= nth );
 		return m_val[n - nth];
+	}
+	unsigned int GetLow( int nth = 1 )const
+	{
+		return m_val[nth - 1];
 	}
 	static _LongInt Rand( size_t bit, RNG& rng )
 	{
@@ -427,6 +433,49 @@ public:
 		return ret;
 	}
 
+	bool operator==( const LongInt& other )const
+	{
+		if( this->isZero() && other.isZero() )
+			return true;
+		return sign == other.sign && _LongInt::operator==( other );
+	}
+	bool operator!=( const LongInt& other )const
+	{
+		if( this->isZero() && other.isZero() )
+			return false;
+		return sign != other.sign || _LongInt::operator!=( other );
+	}
+	bool operator<( const LongInt& other )const
+	{
+		if( this->isZero() && other.isZero() )
+			return false;
+		if( sign != other.sign )
+			return sign < other.sign;
+		else if( sign && other.sign )
+			return _LongInt::operator<( other );
+		else
+			return _LongInt::operator>( other );
+	}
+	bool operator>( const LongInt& other )const
+	{
+		if( this->isZero() && other.isZero() )
+			return false;
+		if( sign != other.sign )
+			return sign > other.sign;
+		else if( sign && other.sign )
+			return _LongInt::operator>( other );
+		else
+			return _LongInt::operator<( other );
+	}
+	bool operator<=( const LongInt& other )const
+	{
+		return !( *this > other );
+	}
+	bool operator>=( const LongInt& other )const
+	{
+		return !( *this < other );
+	}
+
 	LongInt operator+( const LongInt& other )const
 	{
 		LongInt ret;
@@ -464,7 +513,7 @@ public:
 			return LongInt( 0 );
 		if( other == 0 )
 			throw Exception_DivByZero();
-		if( *this < LongInt( other ) )
+		if( _LongInt::operator<( other ) )
 			return LongInt( 0 );
 		if( abs( other ) < RADIX )
 		{
@@ -483,7 +532,7 @@ public:
 			return LongInt( 0 );
 		if( other == 0 )
 			throw Exception_DivByZero();
-		if( *this < LongInt( other ) )
+		if( _LongInt::operator<( other ) )
 			return LongInt( 0 );
 		if( abs( other ) < RADIX )
 		{
@@ -502,7 +551,7 @@ public:
 			return LongInt( 0 );
 		if( other.isZero() )
 			throw Exception_DivByZero();
-		if( *this < other )
+		if( _LongInt::operator<( other ) )
 			return LongInt( 0 );
 		LongInt q, r;
 		UnsignedDivide( *this, other, q, r );
@@ -515,7 +564,7 @@ public:
 			return LongInt( 0 );
 		if( other.isZero() )
 			throw Exception_DivByZero();
-		if( *this < other )
+		if( _LongInt::operator<( other ) )
 			return *this;
 		LongInt q, r;
 		UnsignedDivide( *this, other, q, r );
