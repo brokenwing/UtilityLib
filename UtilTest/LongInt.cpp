@@ -394,3 +394,76 @@ TEST( LongInt, exponent_5)
 	auto s2 = ( a ^ ( 88 - 55 ) ).ToString( ' ' );
 	EXPECT_EQ( s1, s2 );
 }
+TEST( _LongInt, rand)
+{
+	RNG rng( 0 );
+	LongInt v = LongInt::Rand( 3, rng );
+	std::cout << v.ToString() << '\n';
+}
+TEST( LongInt, div_int_1)
+{
+	LongInt a( "123 45600088 45600088" );
+	auto s = ( a / 2 ).ToString( ' ' );
+	EXPECT_EQ( s, "61 72800044 22800044" );
+}
+TEST( LongInt, div_int_2)
+{
+	LongInt a( "123 45600088 45600088" );
+	auto s = ( a / 1 ).ToString( ' ' );
+	EXPECT_EQ( s, "123 45600088 45600088" );
+}
+TEST( LongInt, div_int_3)
+{
+	LongInt a( "123 45600088 45600088" );
+	auto s = ( a / -1 ).ToString( ' ' );
+	EXPECT_EQ( s, "-123 45600088 45600088" );
+}
+TEST( LongInt, div_int_4)
+{
+	LongInt a( "-123 45600088 45600088" );
+	auto s = ( a / 1 ).ToString( ' ' );
+	EXPECT_EQ( s, "-123 45600088 45600088" );
+}
+TEST( LongInt, div_int_5)
+{
+	LongInt a( "-123 45600088 45600088" );
+	auto s = ( a / -1 ).ToString( ' ' );
+	EXPECT_EQ( s, "123 45600088 45600088" );
+}
+TEST( LongInt, mod_int_1)
+{
+	LongInt a( "123 45600088 45600088" );
+	auto s = ( a % 2 ).ToString( ' ' );
+	EXPECT_EQ( s, "0" );
+}
+TEST( LongInt, mod_int_2)
+{
+	LongInt a( "123 45600088 45600088" );
+	auto s = ( a % 1 ).ToString( ' ' );
+	EXPECT_EQ( s, "0" );
+}
+TEST( LongInt, mod_int_3)
+{
+	LongInt a( "123 45600088 45600081" );
+	auto s = ( a % 2 ).ToString( ' ' );
+	EXPECT_EQ( s, "1" );
+}
+TEST( LongInt, mod_int_4)
+{
+	LongInt a( "-123 45600088 45600081" );
+	auto s = ( a % 2 ).ToString( ' ' );
+	EXPECT_EQ( s, "-1" );
+}
+TEST( LongInt, mod_int_5)
+{
+	LongInt a( "123 45600088 45600081" );
+	auto s = ( a % -2 ).ToString( ' ' );
+	EXPECT_EQ( s, "1" );
+}
+TEST( LongInt, mod_int_6)
+{
+	LongInt a( "-123 45600088 45600081" );
+	auto s = ( a % -2 ).ToString( ' ' );
+	EXPECT_EQ( s, "-1" );
+}
+

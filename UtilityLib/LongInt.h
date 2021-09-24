@@ -73,6 +73,16 @@ public:
 	{
 		return m_val[n - nth];
 	}
+	static _LongInt Rand( size_t bit, RNG& rng )
+	{
+		std::uniform_int_distribution<int>  r( 0, RADIX - 1 );
+		_LongInt ret;
+		ret.m_val.resize( bit, 0 );
+		for( auto& e : ret.m_val )
+			e = r( rng );
+		ret.n = ret.count_n( (int)bit );
+		return ret;
+	}
 
 protected:
 	void swap( _LongInt& other )
@@ -333,6 +343,22 @@ protected:
 		}
 		return l;
 	}
+	static void UnsignedDivide( const _LongInt& a, const unsigned int b, _LongInt& quotient, unsigned int& remain )
+	{
+		assert( a >= _LongInt( b ) );
+		assert( b != 0 );
+		assert( b < RADIX );
+		quotient = a;
+		remain = 0;
+		for( int i = a.n - 1; i >= 0; i-- )
+		{
+			ULL tmp = (ULL)remain * RADIX + a.m_val[i];
+			assert( tmp / b < RADIX );
+			quotient.m_val[i] = (unsigned int)( tmp / b );
+			remain = (unsigned int)( tmp % b );
+		}
+		quotient.n = quotient.count_n( a.n );
+	}
 	static void UnsignedDivide( const _LongInt& a, const _LongInt& b, _LongInt& quotient, _LongInt& remain )
 	{
 		assert( a >= b );
@@ -363,7 +389,7 @@ protected:
 };
 ;
 //RADIX = 10^8
-class LongInt :private _LongInt<100000000>
+class LongInt :public _LongInt<100000000>
 {
 public:
 	class Exception_DivByZero :public std::runtime_error
@@ -376,6 +402,8 @@ public:
 	~LongInt()
 	{}
 	LongInt() :_LongInt()
+	{}
+	LongInt( const _LongInt& val ) :_LongInt( val )
 	{}
 	LongInt( int val ) :_LongInt( val )
 	{}
@@ -413,10 +441,15 @@ public:
 	}
 	LongInt operator*( int other )const
 	{
-		LongInt ret;
-		UnsignedMultiply( *this, abs( other ), ret );
-		ret.sign = this->sign == ( other >= 0 );
-		return ret;
+		if( other < RADIX )
+		{
+			LongInt ret;
+			UnsignedMultiply( *this, abs( other ), ret );
+			ret.sign = this->sign == ( other >= 0 );
+			return ret;
+		}
+		else
+			return *this * LongInt( other );
 	}
 	LongInt operator*( const LongInt &other )const
 	{
@@ -424,6 +457,44 @@ public:
 		UnsignedMultiply( *this, other, ret );
 		ret.sign = this->sign == other.sign;
 		return ret;
+	}
+	LongInt operator/( const int other )const
+	{
+		if( this->isZero() )
+			return LongInt( 0 );
+		if( other == 0 )
+			throw Exception_DivByZero();
+		if( *this < LongInt( other ) )
+			return LongInt( 0 );
+		if( abs( other ) < RADIX )
+		{
+			unsigned int r;
+			LongInt q;
+			UnsignedDivide( *this, abs( other ), q, r );
+			q.sign = this->sign == ( other > 0 );
+			return q;
+		}
+		else
+			return *this / LongInt( other );
+	}
+	LongInt operator%( const int other )const
+	{
+		if( this->isZero() )
+			return LongInt( 0 );
+		if( other == 0 )
+			throw Exception_DivByZero();
+		if( *this < LongInt( other ) )
+			return LongInt( 0 );
+		if( abs( other ) < RADIX )
+		{
+			unsigned int r;
+			LongInt q;
+			UnsignedDivide( *this, abs( other ), q, r );
+			
+			return sign ? r : -(int)r;
+		}
+		else
+			return *this % LongInt( other );
 	}
 	LongInt operator/( const LongInt& other )const
 	{
