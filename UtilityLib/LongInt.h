@@ -1,6 +1,7 @@
 #pragma once
 #include "CommonDef.h"
 #include "VecUtil.h"
+#include "Mathematics.h"
 
 namespace Util
 {
@@ -23,20 +24,21 @@ public:
 	}
 	_LongInt( int val )
 	{
-		assert( (ULL)abs(val) < (ULL)RADIX* RADIX );
+		assert( (ULL)abs( val ) < (ULL)RADIX * RADIX );
 		sign = val >= 0;
 		val = abs( val );
-		if( val >= RADIX )
-		{
-			m_val.resize( 2 );
-			m_val[0] = val % RADIX;
-			m_val[1] = val / RADIX;
-			n = 2;
-		}
-		else
+		if( val < RADIX )
 		{
 			m_val.resize( 1, val );
 			n = 1;
+			return;
+		}
+		n = 0;
+		while( val )
+		{
+			++n;
+			m_val.emplace_back( val % RADIX );
+			val /= RADIX;
 		}
 	}
 	_LongInt( const LFA::string& s, char delimiter = ' ' )
@@ -413,14 +415,14 @@ public:
 	{
 		LongInt ret;
 		UnsignedMultiply( *this, abs( other ), ret );
-		ret.sign = this->sign && ( other >= 0 );
+		ret.sign = this->sign == ( other >= 0 );
 		return ret;
 	}
 	LongInt operator*( const LongInt &other )const
 	{
 		LongInt ret;
 		UnsignedMultiply( *this, other, ret );
-		ret.sign = this->sign && other.sign;
+		ret.sign = this->sign == other.sign;
 		return ret;
 	}
 	LongInt operator/( const LongInt& other )const
@@ -433,7 +435,7 @@ public:
 			return LongInt( 0 );
 		LongInt q, r;
 		UnsignedDivide( *this, other, q, r );
-		q.sign = this->sign && other.sign;
+		q.sign = this->sign == other.sign;
 		return q;
 	}
 	LongInt operator%( const LongInt& other )const
@@ -446,11 +448,19 @@ public:
 			return *this;
 		LongInt q, r;
 		UnsignedDivide( *this, other, q, r );
-		q.sign = this->sign && other.sign;
+		r.sign = this->sign;
 		return r;
 	}
-private:
-
+	//FastExponentiation
+	LongInt operator^( unsigned int exponent )const
+	{
+		if( exponent == 0 )
+			return LongInt( 1 );
+		return Math::FastExponentiation( *this, exponent, [] ( const LongInt& l, const LongInt& r )
+		{
+			return l * r;
+		} );
+	}
 };
 
 //RADIX = 1 << 30

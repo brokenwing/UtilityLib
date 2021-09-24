@@ -3,6 +3,13 @@
 
 using namespace Util;
 
+TEST( LongInt, int_construct )
+{
+	auto out = "10 00000000";
+	LongInt a( 1000000000 );//10^9
+	auto s = a.ToString( ' ' );
+	EXPECT_EQ( s, out );
+}
 TEST( LongInt, postive_string_num )
 {
 	auto in = "123 456 789";
@@ -178,6 +185,12 @@ TEST( LongInt, mul_small_6 )
 	auto s = ( a * 0 ).ToString();
 	EXPECT_EQ( s, "0" );
 }
+TEST( LongInt, mul_small_7 )
+{
+	LongInt a( "-123 45678909 87654321" );
+	auto s = ( a * -1 ).ToString( ' ' );
+	EXPECT_EQ( s, "123 45678909 87654321" );
+}
 TEST( LongInt, mul_large_1 )
 {
 	LongInt a( "1 0" );
@@ -205,6 +218,27 @@ TEST( LongInt, mul_large_4 )
 	LongInt b( "45678909 87654321" );
 	auto s = ( b * a ).ToString();
 	EXPECT_EQ( s, "20865628075093568166437789971041" );
+}
+TEST( LongInt, mul_large_5 )
+{
+	LongInt a( "-45678909 87654321" );
+	LongInt b( "45678909 87654321" );
+	auto s = ( b * a ).ToString();
+	EXPECT_EQ( s, "-20865628075093568166437789971041" );
+}
+TEST( LongInt, mul_large_6 )
+{
+	LongInt a( "-45678909 87654321" );
+	LongInt b( "-45678909 87654321" );
+	auto s = ( b * a ).ToString();
+	EXPECT_EQ( s, "20865628075093568166437789971041" );
+}
+TEST( LongInt, mul_large_7 )
+{
+	LongInt a( "45678909 87654321" );
+	LongInt b( "-45678909 87654321" );
+	auto s = ( b * a ).ToString();
+	EXPECT_EQ( s, "-20865628075093568166437789971041" );
 }
 TEST( LongInt, div_small_1 )
 {
@@ -255,6 +289,27 @@ TEST( LongInt, div_small_7 )
 	auto s = ( a / b ).ToString( ' ' );
 	EXPECT_EQ( s, "61 72800044 22800044" );
 }
+TEST( LongInt, div_sign_1 )
+{
+	LongInt a( "-123 45600088 45600088" );
+	LongInt b( "2" );
+	auto s = ( a / b ).ToString( ' ' );
+	EXPECT_EQ( s, "-61 72800044 22800044" );
+}
+TEST( LongInt, div_sign_2 )
+{
+	LongInt a( "-123 45600088 45600088" );
+	LongInt b( "-2" );
+	auto s = ( a / b ).ToString( ' ' );
+	EXPECT_EQ( s, "61 72800044 22800044" );
+}
+TEST( LongInt, div_sign_3 )
+{
+	LongInt a( "123 45600088 45600088" );
+	LongInt b( "-2" );
+	auto s = ( a / b ).ToString( ' ' );
+	EXPECT_EQ( s, "-61 72800044 22800044" );
+}
 TEST( LongInt, mod_1)
 {
 	LongInt a( "3" );
@@ -282,4 +337,60 @@ TEST( LongInt, mod_4)
 	LongInt b( "256 98765432" );
 	auto s = ( a % b ).ToString( ' ' );
 	EXPECT_EQ( s, "206 07101456" );
+}
+TEST( LongInt, mod_sign_1)
+{
+	LongInt a( "-123 45600000 78900008" );
+	LongInt b( "256 98765432" );
+	auto s = ( a % b ).ToString( ' ' );
+	EXPECT_EQ( s, "-206 07101456" );
+}
+TEST( LongInt, mod_sign_2)
+{
+	LongInt a( "123 45600000 78900008" );
+	LongInt b( "-256 98765432" );
+	auto s = ( a % b ).ToString( ' ' );
+	EXPECT_EQ( s, "206 07101456" );
+}
+TEST( LongInt, mod_sign_3)
+{
+	LongInt a( "-123 45600000 78900008" );
+	LongInt b( "-256 98765432" );
+	auto s = ( a % b ).ToString( ' ' );
+	EXPECT_EQ( s, "-206 07101456" );
+}
+TEST( LongInt, exponent_1)
+{
+	LongInt a( "123 45600000" );
+	auto s1 = ( a ^ 2 ).ToString( ' ' );
+	auto s2 = ( a * a ).ToString( ' ' );
+	EXPECT_EQ( s1, s2 );
+}
+TEST( LongInt, exponent_2)
+{
+	LongInt a( "123 45600000" );
+	auto s1 = ( a ^ 1 ).ToString( ' ' );
+	auto s2 = ( a ).ToString( ' ' );
+	EXPECT_EQ( s1, s2 );
+}
+TEST( LongInt, exponent_3)
+{
+	LongInt a( "123 45600000" );
+	auto s1 = ( a ^ 0 ).ToString( ' ' );
+	auto s2 = "1";
+	EXPECT_EQ( s1, s2 );
+}
+TEST( LongInt, exponent_4)
+{
+	LongInt a( "123 45600000" );
+	auto s1 = ( a ^ 5 ).ToString( ' ' );
+	auto s2 = ( a * a * a * a * a ).ToString( ' ' );
+	EXPECT_EQ( s1, s2 );
+}
+TEST( LongInt, exponent_5)
+{
+	LongInt a( "123 45600000" );
+	auto s1 = ( ( a ^ 88 ) / ( a ^ 55 ) ).ToString( ' ' );
+	auto s2 = ( a ^ ( 88 - 55 ) ).ToString( ' ' );
+	EXPECT_EQ( s1, s2 );
 }

@@ -229,3 +229,11 @@ TEST( Math, Combination_basic )
 	EXPECT_EQ( Combination( 55, 1 ), 55 );
 }
 
+TEST( FastExponentiation, basic )
+{
+	int r = FastExponentiation<int>( 10, 3, [] ( int a, int b )
+	{
+		return a * b;
+	} );
+	EXPECT_EQ( r, 1000 );
+}
