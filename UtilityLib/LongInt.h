@@ -23,6 +23,7 @@ public:
 	}
 	_LongInt( int val )
 	{
+		assert( (ULL)abs(val) < (ULL)RADIX* RADIX );
 		sign = val >= 0;
 		val = abs( val );
 		if( val >= RADIX )
@@ -66,8 +67,17 @@ public:
 	}
 	~_LongInt()
 	{}
+	unsigned int GetHigh( int nth = 1 )const
+	{
+		return m_val[n - nth];
+	}
 
 protected:
+	void swap( _LongInt& other )
+	{
+		m_val.swap( other.m_val );
+		std::swap( n, other.n );
+	}
 	bool check()const
 	{
 		if( n < 1 )
@@ -173,7 +183,7 @@ protected:
 		assert( c.check() );
 	}
 	
-	static void UnsignedMinus( const _LongInt& a, const _LongInt& b, _LongInt& c )
+	static void UnsignedSub( const _LongInt& a, const _LongInt& b, _LongInt& c )
 	{
 		assert( a.n >= b.n );
 		assert( a >= b );
@@ -217,9 +227,9 @@ protected:
 		{
 			const bool ge = a >= b;
 			if( ge )
-				UnsignedMinus( a, b, c );
+				UnsignedSub( a, b, c );
 			else
-				UnsignedMinus( b, a, c );
+				UnsignedSub( b, a, c );
 			//a b   c
 			//+ - > +
 			//+ - < -
@@ -281,22 +291,86 @@ protected:
 			{
 				tmp <<= ct;// *= RADIX
 				UnsignedPlus( tmp, c, sum );
-				c.m_val.swap( sum.m_val );
-				std::swap( c.n, sum.n );
+				c.swap( sum );
 			}
 			ct++;
 		}
 		assert( c.check() );
 	}
+
+	static unsigned int UnsignedDivideShort( const _LongInt& a, const _LongInt& b )
+	{
+		assert( a >= b );
+		assert( a.n == b.n || a.n == b.n + 1 );
+		unsigned int l = 0;
+		unsigned int r = RADIX - 1;
+		if( a.n == b.n )
+		{
+			r = a.GetHigh() / b.GetHigh();
+			l = a.GetHigh() / ( b.GetHigh() + 1 );
+		}
+		else if( a.n == b.n + 1 )
+		{
+			ULL x = (ULL)a.GetHigh() * RADIX + a.GetHigh( 2 );
+			assert( x / b.GetHigh() < RADIX );
+			r = (unsigned int)( x / b.GetHigh() );
+			l = (unsigned int)( x / ( b.GetHigh() + 1 ) );
+		}
+		assert( l <= r );
+		thread_local _LongInt tmp;
+		while( l < r )
+		{
+			auto mid = ( l + r + 1 ) >> 1;
+			UnsignedMultiply( b, mid, tmp );
+			if( tmp > a )
+				r = mid - 1;
+			else if( tmp < a )
+				l = mid;
+			else
+				return mid;
+		}
+		return l;
+	}
+	static void UnsignedDivide( const _LongInt& a, const _LongInt& b, _LongInt& quotient, _LongInt& remain )
+	{
+		assert( a >= b );
+		assert( !b.isZero() );
+		quotient.m_val.assign( a.n - b.n + 1, 0 );
+		remain.m_val.reserve( a.n );
+		remain.m_val.clear();
+		remain.n = 0;
+		thread_local _LongInt v_mul, v_sub;
+		for( int pos = a.n - 1; pos >= 0; --pos )
+		{
+			remain.m_val.insert( remain.m_val.begin(), a.m_val[pos] );
+			++remain.n;
+			if( remain < b )
+				continue;
+			auto q = UnsignedDivideShort( remain, b );
+			quotient.m_val[pos] = q;
+			UnsignedMultiply( b, q, v_mul );
+			UnsignedSub( remain, v_mul, v_sub );
+			remain.swap( v_sub );
+			if( remain.isZero() )
+				remain.n = 0;
+		}
+		if( remain.n == 0 )
+			remain.n = 1;
+		quotient.n = quotient.count_n( a.n - b.n + 1 );
+	}
 };
-
-
+;
 //RADIX = 10^8
 class LongInt :private _LongInt<100000000>
 {
-private:
-
 public:
+	class Exception_DivByZero :public std::runtime_error
+	{
+	public:
+		Exception_DivByZero() :std::runtime_error( "" )
+		{}
+	};
+
 	~LongInt()
 	{}
 	LongInt() :_LongInt()
@@ -348,6 +422,32 @@ public:
 		UnsignedMultiply( *this, other, ret );
 		ret.sign = this->sign && other.sign;
 		return ret;
+	}
+	LongInt operator/( const LongInt& other )const
+	{
+		if( this->isZero() )
+			return LongInt( 0 );
+		if( other.isZero() )
+			throw Exception_DivByZero();
+		if( *this < other )
+			return LongInt( 0 );
+		LongInt q, r;
+		UnsignedDivide( *this, other, q, r );
+		q.sign = this->sign && other.sign;
+		return q;
+	}
+	LongInt operator%( const LongInt& other )const
+	{
+		if( this->isZero() )
+			return LongInt( 0 );
+		if( other.isZero() )
+			throw Exception_DivByZero();
+		if( *this < other )
+			return *this;
+		LongInt q, r;
+		UnsignedDivide( *this, other, q, r );
+		q.sign = this->sign && other.sign;
+		return r;
 	}
 private:
 
