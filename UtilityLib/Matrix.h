@@ -10,6 +10,9 @@ template <typename T,
 	typename Container = std::vector<RowContainer, DefaultAllocator<RowContainer> >>
 class Matrix
 {
+public:
+	using value_type = typename T;
+
 protected:
 	Container data;
 
