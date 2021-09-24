@@ -632,3 +632,92 @@ TEST( LongIntCompare, GE5)
 	LongInt b( "-123 457" );
 	EXPECT_TRUE( a >= b );
 }
+
+TEST( LongInt_self_operator, add1)
+{
+	LongInt a( "123" );
+	LongInt b = ++a;
+	EXPECT_EQ( a.ToString(), "124" );
+	EXPECT_EQ( b.ToString(), "124" );
+}
+TEST( LongInt_self_operator, add2)
+{
+	LongInt a( "-123" );
+	LongInt b = ++a;
+	EXPECT_EQ( a.ToString(), "-122" );
+	EXPECT_EQ( b.ToString(), "-122" );
+}
+TEST( LongInt_self_operator, add3)
+{
+	LongInt a( "123" );
+	LongInt b = a++;
+	EXPECT_EQ( a.ToString(), "124" );
+	EXPECT_EQ( b.ToString(), "123" );
+}
+TEST( LongInt_self_operator, add4)
+{
+	LongInt a( "-123" );
+	LongInt b = a++;
+	EXPECT_EQ( a.ToString(), "-122" );
+	EXPECT_EQ( b.ToString(), "-123" );
+}
+
+TEST( LongInt_self_operator, dec1)
+{
+	LongInt a( "123" );
+	LongInt b = --a;
+	EXPECT_EQ( a.ToString(), "122" );
+	EXPECT_EQ( b.ToString(), "122" );
+}
+TEST( LongInt_self_operator, dec2)
+{
+	LongInt a( "-123" );
+	LongInt b = --a;
+	EXPECT_EQ( a.ToString(), "-124" );
+	EXPECT_EQ( b.ToString(), "-124" );
+}
+TEST( LongInt_self_operator, dec3)
+{
+	LongInt a( "123" );
+	LongInt b = a--;
+	EXPECT_EQ( a.ToString(), "122" );
+	EXPECT_EQ( b.ToString(), "123" );
+}
+TEST( LongInt_self_operator, dec4)
+{
+	LongInt a( "-123" );
+	LongInt b = a--;
+	EXPECT_EQ( a.ToString(), "-124" );
+	EXPECT_EQ( b.ToString(), "-123" );
+}
+
+TEST( LongInt_self_operator, add_and_set_1)
+{
+	LongInt a( "123" );
+	a += LongInt( 123 );
+	EXPECT_EQ( a.ToString(), "246" );
+}
+TEST( LongInt_self_operator, dec_and_set_1)
+{
+	LongInt a( "123" );
+	a -= LongInt( 123 );
+	EXPECT_EQ( a.ToString(), "0" );
+}
+TEST( LongInt_self_operator, mul_and_set_1)
+{
+	LongInt a( "123" );
+	a *= LongInt( 123 );
+	EXPECT_EQ( a.ToString(), "15129" );
+}
+TEST( LongInt_self_operator, div_and_set_1)
+{
+	LongInt a( "123" );
+	a /= LongInt( 123 );
+	EXPECT_EQ( a.ToString(), "1" );
+}
+TEST( LongInt_self_operator, mod_and_set_1)
+{
+	LongInt a( "123" );
+	a %= LongInt( 2 );
+	EXPECT_EQ( a.ToString(), "1" );
+}

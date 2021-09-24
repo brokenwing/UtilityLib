@@ -305,7 +305,7 @@ protected:
 		{
 			tmp = _LongInt();
 			UnsignedMultiply( *n_long, i, tmp );
-			if( tmp != _LongInt( 0 ) )
+			if( !tmp.isZero() )
 			{
 				tmp <<= ct;// *= RADIX
 				UnsignedPlus( tmp, c, sum );
@@ -474,6 +474,54 @@ public:
 	bool operator>=( const LongInt& other )const
 	{
 		return !( *this < other );
+	}
+
+	LongInt& operator++()
+	{
+		*this += LongInt( 1 );
+		return *this;
+	}
+	LongInt& operator--()
+	{
+		*this -= LongInt( 1 );
+		return *this;
+	}
+	LongInt operator++(int)
+	{
+		auto tmp = *this;
+		*this += LongInt( 1 );
+		return tmp;
+	}
+	LongInt operator--(int)
+	{
+		auto tmp = *this;
+		*this -= LongInt( 1 );
+		return tmp;
+	}
+	LongInt& operator+=( const LongInt& other )
+	{
+		*this = operator+( other );
+		return *this;
+	}
+	LongInt& operator-=( const LongInt& other )
+	{
+		*this = operator-( other );
+		return *this;
+	}
+	LongInt& operator*=( const LongInt& other )
+	{
+		*this = operator*( other );
+		return *this;
+	}
+	LongInt& operator/=( const LongInt& other )
+	{
+		*this = operator/( other );
+		return *this;
+	}
+	LongInt& operator%=( const LongInt& other )
+	{
+		*this = operator%( other );
+		return *this;
 	}
 
 	LongInt operator+( const LongInt& other )const
