@@ -23,8 +23,20 @@ public:
 	}
 	_LongInt( int val )
 	{
-		m_val.resize( 1, abs(val) );
 		sign = val >= 0;
+		val = abs( val );
+		if( val >= RADIX )
+		{
+			m_val.resize( 2 );
+			m_val[0] = val % RADIX;
+			m_val[1] = val / RADIX;
+			n = 2;
+		}
+		else
+		{
+			m_val.resize( 1, val );
+			n = 1;
+		}
 	}
 	_LongInt( const LFA::string& s, char delimiter = ' ' )
 	{
@@ -197,6 +209,47 @@ protected:
 			c.sign = ge ^ sign_b;
 		}
 	}
+	
+	static void UnsignedMultiply( const _LongInt& a, const unsigned int b, _LongInt& c )
+	{
+		if( b == 0 )
+		{
+			c.n = 1;
+			c.m_val.clear();
+			c.m_val.resize( 1, 0 );
+			return;
+		}
+		if( b == 1 )
+		{
+			c.n = a.n;
+			c.m_val = a.m_val;
+			return;
+		}
+		assert( b >= 0 && b < RADIX );
+		c.m_val.resize( a.n + 1, 0 );
+		c.n = a.n;
+		ULL offset = 0;
+		auto it = c.m_val.begin();
+		auto it_a = a.m_val.begin();
+		for( int i = 0; i < a.n; i++, ++it, ++it_a )
+		{
+			ULL tmp = offset + *it_a * (ULL)b;
+			*it = tmp % RADIX;
+			offset = tmp / RADIX;
+		}
+		if( offset != 0 )
+		{
+			assert( offset < RADIX );
+			*it = (unsigned int)offset;
+			++c.n;
+		}
+		assert( c.check() );
+	}
+	static void UnsignedMultiply( const _LongInt& a, const _LongInt &b, _LongInt& c )
+	{
+
+		assert( c.check() );
+	}
 };
 
 
@@ -242,6 +295,13 @@ public:
 	{
 		LongInt ret;
 		SignedPlus( *this, other, sign, !other.sign, ret );
+		return ret;
+	}
+	LongInt operator*( int other )const
+	{
+		LongInt ret;
+		UnsignedMultiply( *this, abs( other ), ret );
+		ret.sign = this->sign && ( other >= 0 );
 		return ret;
 	}
 private:
