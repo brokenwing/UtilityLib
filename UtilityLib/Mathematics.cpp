@@ -116,7 +116,7 @@ LL Factorial( int n )
 LL Permutation( int n, int m )
 {
 	LL ret = 1;
-	for( int i = std::max(2,n - m + 1); i <= n; i++ )
+	for( int i = std::max( 2, n - m + 1 ); i <= n; i++ )
 		ret *= i;
 	return ret;
 }

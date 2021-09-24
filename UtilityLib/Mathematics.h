@@ -24,6 +24,62 @@ extern inline LL Permutation( int n, int m );
 //C(n,m):= P(n,m)/m!
 extern inline LL Combination( int n, int m );
 
+template<typename T>
+T GCD( T a, T b )
+{
+	T tmp;
+	while( true )
+	{
+		if( b == T( 0 ) )
+			return a;
+		tmp = a;
+		a = b;
+		b = tmp % b;
+	}
+}
+template<typename T>
+std::pair<T, T> ExtGCD( const T& a, const T& b )
+{
+	if( b == T( 0 ) )
+	{
+		return std::make_pair( T( 1 ), T( 0 ) );
+	}
+	else
+	{
+		auto r = ExtGCD( b, a % b );
+		return std::make_pair( r.second, r.first - a / b * r.second );
+	}
+}
+template<typename T>
+T Inverse( const T &a, const T &n )
+{
+	auto [x, y] = ExtGCD<T>( a, n );
+	if( x < T(0) )
+		x += n;
+	return x;
+}
+template<typename T>
+T Factorial( int n )
+{
+	T ret( 1 );
+	while( n > 0 )
+		ret *= T( n-- );
+	return ret;
+}
+template<typename T>
+T Permutation( int n, int m )
+{
+	T ret( 1 );
+	for( int i = std::max( 2, n - m + 1 ); i <= n; i++ )
+		ret *= T( i );
+	return ret;
+}
+template<typename T>
+T Combination( int n, int m )
+{
+	return Permutation<T>( n, m ) / Factorial<T>( m );
+}
+
 template <typename Iter>
 void Normalize( Iter begin, Iter end, int norm = 1 );
 template <typename Iter>

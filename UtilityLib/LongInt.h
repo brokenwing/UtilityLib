@@ -105,7 +105,7 @@ protected:
 				return false;
 		return true;
 	}
-	int count_n(int from)const
+	int count_n( int from )const
 	{
 		for( int i = from - 1; i >= 0; i-- )
 			if( m_val[i] > 0 )
@@ -116,7 +116,7 @@ protected:
 	{
 		return n == 1 && m_val[0] == 0;
 	}
-	//ignroe sign
+	//ignore sign
 
 	bool operator<( const _LongInt& other )const
 	{
@@ -146,16 +146,16 @@ protected:
 	}
 	bool operator==( const _LongInt& other )const
 	{
-		return n == other.n && EQ( this->m_val.rbegin(), other.m_val.rbegin(), n );
+		return n == other.n && EQ( this->m_val.rbegin() + ( m_val.size() - n ), other.m_val.rbegin() + ( other.m_val.size() - n ), n );
 	}
 	bool operator!=( const _LongInt& other )const
 	{
-		return !( *this == other );
+		return !( _LongInt::operator== ( other ) );
 	}
 	// *= RADIX^bit
 	_LongInt& operator<<=( int bit )
 	{
-		if( bit ==1 )
+		if( bit == 1 )
 		{
 			m_val.insert( m_val.begin(), 0 );
 			n += bit;
@@ -259,7 +259,7 @@ protected:
 	
 	static void UnsignedMultiply( const _LongInt& a, const unsigned int b, _LongInt& c )
 	{
-		if( b == 0 || a == _LongInt( 0 ) )
+		if( b == 0 || a.isZero() )
 		{
 			c.n = 1;
 			c.m_val.assign( 1, 0 );

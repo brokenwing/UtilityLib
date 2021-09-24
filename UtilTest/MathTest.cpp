@@ -184,7 +184,7 @@ TEST( Math, extgcd_3 )
 
 TEST( Math, inverse )
 {
-	EXPECT_EQ( Inverse(3,10),7 );
+	EXPECT_EQ( Inverse( 3, 10 ), 7 );
 	EXPECT_EQ( Inverse( 9, 11 ) * 9 % 11, 1 );
 }
 

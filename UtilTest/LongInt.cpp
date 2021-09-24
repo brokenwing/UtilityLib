@@ -721,3 +721,76 @@ TEST( LongInt_self_operator, mod_and_set_1)
 	a %= LongInt( 2 );
 	EXPECT_EQ( a.ToString(), "1" );
 }
+
+TEST( LongIntMathTest, Factorial )
+{
+	auto r = Math::Factorial<LongInt>( 20 );
+	EXPECT_EQ( r.ToString(), "2432902008176640000" );
+}
+TEST( LongIntMathTest, Factorial_small )
+{
+	auto r = Math::Factorial<LongInt>( 10 );
+	EXPECT_EQ( r.ToString(), "3628800" );
+}
+TEST( LongIntMathTest, Permutation )
+{
+	auto r = Math::Permutation<LongInt>( 25, 15);
+	EXPECT_EQ( r.ToString(), "4274473667143680000" );
+}
+TEST( LongIntMathTest, Permutation_small )
+{
+	auto r = Math::Permutation<LongInt>( 10, 5);
+	EXPECT_EQ( r.ToString(), "30240" );
+}
+TEST( LongIntMathTest, Combination )
+{
+	auto r = Math::Combination<LongInt>( 25,10 );
+	EXPECT_EQ( r.ToString(), "3268760" );
+}
+TEST( LongIntMathTest, Combination_small )
+{
+	auto r = Math::Combination<LongInt>( 10,2 );
+	EXPECT_EQ( r.ToString(), "45" );
+}
+TEST( LongIntMathTest, gcd_small )
+{
+	auto r = Math::GCD<LongInt>( 24, 18 );
+	EXPECT_EQ( r.ToString(), "6" );
+}
+TEST( LongIntMathTest, exgcd_small )
+{
+	LongInt a = 3;
+	LongInt b = 2;
+	auto [x, y] = Math::ExtGCD<LongInt>( a, b );
+	EXPECT_EQ( a * x + b * y, LongInt( 1 ) );
+}
+TEST( LongIntMathTest, exgcd_small2 )
+{
+	LongInt a = 10;
+	LongInt b = 24;
+	auto [x, y] = Math::ExtGCD<LongInt>( a, b );
+	LongInt r = a * x + b * y;
+	EXPECT_EQ( r, LongInt( 2 ) );
+}
+TEST( LongIntMathTest, exgcd_small3 )
+{
+	LongInt a = 123467;
+	LongInt b = 987654;
+	auto [x, y] = Math::ExtGCD<LongInt>( a, b );
+	LongInt r = a * x + b * y;
+	EXPECT_EQ( r, LongInt( 1 ) );
+}
+TEST( LongIntMathTest, inverse_small )
+{
+	LongInt a = 3;
+	LongInt b = 11;
+	auto v = Math::Inverse<LongInt>( a, b );
+	EXPECT_EQ( a * v % b, LongInt( 1 ) );
+}
+TEST( LongIntMathTest, inverse_large )
+{
+	LongInt a( "12345678 12345678" );
+	LongInt b( "12345678 12345679" );
+	auto v = Math::Inverse<LongInt>( a, b );
+	EXPECT_EQ( a * v % b, LongInt( 1 ) );
+}
