@@ -39,6 +39,7 @@
     <ClCompile Include="MathTest.cpp" />
     <ClCompile Include="MatrixTest.cpp" />
     <ClCompile Include="BlockList.cpp" />
+    <ClCompile Include="LongInt.cpp" />
     <ClCompile Include="VecUtil.cpp" />
     <ClCompile Include="test.cpp" />
     <ClCompile Include="pch.cpp">
