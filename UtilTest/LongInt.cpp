@@ -794,3 +794,61 @@ TEST( LongIntMathTest, inverse_large )
 	auto v = Math::Inverse<LongInt>( a, b );
 	EXPECT_EQ( a * v % b, LongInt( 1 ) );
 }
+TEST( LongIntMathTest, inverse_large2 )
+{
+	LongInt a( "12345678 12345678" );
+	LongInt b( "12345678 12345679 123567" );
+	auto v = Math::Inverse<LongInt>( a, b );
+	EXPECT_EQ( a * v % b, Math::GCD( a, b ) );
+}
+
+TEST( LongInt, even )
+{
+	EXPECT_TRUE( LongInt( 0 ).isEven() );
+	EXPECT_TRUE( !LongInt( 1 ).isEven() );
+	EXPECT_TRUE( LongInt( 2 ).isEven() );
+	EXPECT_TRUE( LongInt( -2 ).isEven() );
+	EXPECT_TRUE( LongInt( "123 456 788" ).isEven() );
+	EXPECT_TRUE( !LongInt( "123 456 789" ).isEven() );
+}
+TEST( LongInt, odd )
+{
+	EXPECT_TRUE( LongInt( 1 ).isOdd() );
+	EXPECT_TRUE( LongInt( -1 ).isOdd() );
+	EXPECT_TRUE( !LongInt( 0 ).isOdd() );
+	EXPECT_TRUE( LongInt( "123 456 999" ).isOdd() );
+	EXPECT_TRUE( !LongInt( "123 456 998" ).isOdd() );
+}
+TEST( LongInt, GetHigh )
+{
+	EXPECT_EQ( LongInt( 1 ).GetHigh( 1 ), 1 );
+	EXPECT_EQ( LongInt( "123 456" ).GetHigh( 1 ), 123 );
+	EXPECT_EQ( LongInt( "123 456" ).GetHigh( 2 ), 456 );
+}
+TEST( LongInt, GetLow )
+{
+	EXPECT_EQ( LongInt( 1 ).GetLow( 1 ), 1 );
+	EXPECT_EQ( LongInt( "123 456" ).GetLow( 1 ), 456 );
+	EXPECT_EQ( LongInt( "123 456" ).GetLow( 2 ), 123 );
+}
+TEST( LongInt, ModFastExponentiation_large_mod )
+{
+	LongInt a = 10;
+	LongInt mod( "99999999 99999999 99999999" );
+	auto r = a.ModExponentiation( 15, mod );
+}
+TEST( LongInt, ModFastExponentiation_small_mod )
+{
+	LongInt a = 10;
+	LongInt mod( "12 99999999" );
+	auto r = a.ModExponentiation( 15, mod );
+	EXPECT_EQ( r.ToString(), "1000769230" );
+}
+TEST( LongInt, ModFastExponentiation_mod )
+{
+	LongInt a = 12345;
+	LongInt mod( "123 456" );
+	auto r1 = a.ModExponentiation( 55, mod );
+	auto r2 = ( a ^ 55 ) % mod;
+	EXPECT_EQ( r1, r2 );
+}

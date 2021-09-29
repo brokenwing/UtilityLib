@@ -79,6 +79,15 @@ public:
 	{
 		return m_val[nth - 1];
 	}
+	bool isEven()const
+	{
+		assert( n > 0 );
+		return ( m_val[0] & 1 ) == 0;
+	}
+	bool isOdd()const
+	{
+		return !isEven();
+	}
 	static _LongInt Rand( size_t bit, RNG& rng )
 	{
 		std::uniform_int_distribution<int>  r( 0, RADIX - 1 );
@@ -620,13 +629,27 @@ public:
 		return r;
 	}
 	//FastExponentiation
-	LongInt operator^( unsigned int exponent )const
+	LongInt operator^( size_t exponent )const
 	{
 		if( exponent == 0 )
 			return LongInt( 1 );
 		return Math::FastExponentiation( *this, exponent, [] ( const LongInt& l, const LongInt& r )
 		{
 			return l * r;
+		} );
+	}
+	LongInt ModExponentiation( size_t exponent, const LongInt& mod )const
+	{
+		if( exponent == 0 )
+			return LongInt( 1 );
+		return Math::FastExponentiation<LongInt>( *this, exponent, mod,
+												  [] ( const LongInt& a, const LongInt& b )->LongInt
+		{
+			return a * b;
+		},
+												  [] ( const LongInt& a, const LongInt& b )->LongInt
+		{
+			return a % b;
 		} );
 	}
 };

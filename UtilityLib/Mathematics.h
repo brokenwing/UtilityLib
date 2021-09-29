@@ -25,6 +25,116 @@ extern inline LL Permutation( int n, int m );
 extern inline LL Combination( int n, int m );
 
 template<typename T>
+T GCD( T a, T b );
+template<typename T>
+std::pair<T, T> ExtGCD( const T& a, const T& b );
+template<typename T>
+T Inverse( const T& a, const T& n );
+template<typename T>
+T Factorial( int n );
+template<typename T>
+T Permutation( int n, int m );
+template<typename T>
+T Combination( int n, int m );
+
+template <typename Iter>
+void Normalize( Iter begin, Iter end, int norm = 1 );
+template <typename Iter>
+inline double Mean( Iter begin, Iter end );
+template <typename Iter>
+inline double Variance( Iter begin, Iter end, double mean );
+template <typename Iter>
+inline double Variance( Iter begin, Iter end );
+
+template <typename T, typename Multiply>
+T FastExponentiation( const T& base, LL exponent, Multiply mul );//General Fast Exponentiation
+template <typename T, typename Multiply, typename Modulo>
+T FastExponentiation( const T& base, LL exponent, const T& mod, Multiply mul, Modulo modulo );//General Fast Exponentiation with mod
+
+//
+//Body
+//
+template <typename Iter>
+void Normalize( Iter begin, Iter end, int norm )
+{
+	double sum = 0;
+	switch( norm )
+	{
+	case 0:
+		for( auto i = begin; i != end; ++i )
+			sum += 1;
+		break;
+	case 1:
+		for( auto i = begin; i != end; ++i )
+			sum += *i;
+		break;
+	case 2:
+		for( auto i = begin; i != end; ++i )
+			sum += ( *i ) * ( *i );
+		break;
+	default:
+		for( auto i = begin; i != end; ++i )
+			sum += std::pow( *i, norm );
+		break;
+	}
+	assert( sum > eps );
+	for( auto i = begin; i != end; ++i )
+		*i /= sum;
+}
+template <typename Iter>
+inline double Mean( Iter begin, Iter end )
+{
+	auto n = std::distance( begin, end );
+	return std::accumulate<Iter, double>( begin, end, 0.0 ) / n;
+}
+template <typename Iter>
+inline double Variance( Iter begin, Iter end, double mean )
+{
+	double ret = 0;
+	for( auto i = begin; i != end; ++i )
+	{
+		double v = *i - mean;
+		ret += v * v;
+	}
+	return ret;
+}
+template <typename Iter>
+inline double Variance( Iter begin, Iter end )
+{
+	return Variance( begin, end, Mean( begin, end ) );
+}
+template <typename T,typename Multiply>
+T FastExponentiation( const T& base, LL exponent, Multiply mul )
+{
+	if( exponent <= 1 )
+		return base;
+	T x = base;
+	T y = base;
+	--exponent;
+	while( exponent > 0 )
+	{
+		if( ( exponent & 1 ) == 1 )
+			x = mul( x, y );//x*=y
+		y = mul( y, y );//y*=y
+		exponent >>= 1;
+	}
+	return x;
+}
+template <typename T, typename Multiply, typename Modulo>
+T FastExponentiation( const T& base, LL exponent, const T& mod, Multiply mul, Modulo modulo )//General Fast Exponentiation with mod
+{
+	T x = 1;
+	T y = modulo( base, mod );
+	while( exponent > 0 )
+	{
+		if( ( exponent & 1 ) == 1 )
+			x = modulo( mul( x, y ), mod );
+		y = modulo( mul( y, y ), mod );
+		exponent >>= 1;
+	}
+	return modulo( x, mod );
+}
+template<typename T>
 T GCD( T a, T b )
 {
 	T tmp;
@@ -78,82 +188,5 @@ template<typename T>
 T Combination( int n, int m )
 {
 	return Permutation<T>( n, m ) / Factorial<T>( m );
-}
-
-template <typename Iter>
-void Normalize( Iter begin, Iter end, int norm = 1 );
-template <typename Iter>
-inline double Mean( Iter begin, Iter end )
-{
-	auto n = std::distance( begin, end );
-	return std::accumulate<Iter, double>( begin, end, 0.0 ) / n;
-}
-template <typename Iter>
-inline double Variance( Iter begin, Iter end, double mean )
-{
-	double ret = 0;
-	for( auto i = begin; i != end; ++i )
-	{
-		double v = *i - mean;
-		ret += v * v;
-	}
-	return ret;
-}
-template <typename Iter>
-inline double Variance( Iter begin, Iter end )
-{
-	return Variance( begin, end, Mean( begin, end ) );
-}
-
-template <typename T,typename Multiply>
-T FastExponentiation( const T& base, LL exponent, Multiply mul );//General Fast Exponentiation
-
-//
-//Body
-//
-template <typename Iter>
-void Normalize( Iter begin, Iter end, int norm )
-{
-	double sum = 0;
-	switch( norm )
-	{
-	case 0:
-		for( auto i = begin; i != end; ++i )
-			sum += 1;
-		break;
-	case 1:
-		for( auto i = begin; i != end; ++i )
-			sum += *i;
-		break;
-	case 2:
-		for( auto i = begin; i != end; ++i )
-			sum += ( *i ) * ( *i );
-		break;
-	default:
-		for( auto i = begin; i != end; ++i )
-			sum += std::pow( *i, norm );
-		break;
-	}
-	assert( sum > eps );
-	for( auto i = begin; i != end; ++i )
-		*i /= sum;
-}
-
-template <typename T,typename Multiply>
-T FastExponentiation( const T& base, LL exponent, Multiply mul )
-{
-	if( exponent <= 1 )
-		return base;
-	T x = base;
-	T y = base;
-	--exponent;
-	while( exponent > 0 )
-	{
-		if( ( exponent & 1 ) == 1 )
-			x = mul( x, y );//x*=y
-		y = mul( y, y );//y*=y
-		exponent >>= 1;
-	}
-	return x;
 }
 }
