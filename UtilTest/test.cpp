@@ -431,3 +431,27 @@ TEST( TupleHash, unordered_map )
 	std::unordered_map<tup, int, TupleHash<tup>> map;
 	map[{1, 2, 3}] = 1;
 }
+
+TEST( Define, FOR_1 )
+{
+	std::vector<int> q;
+	FOR( i, 0, 3 )
+		q.emplace_back( i );
+	ASSERT_EQ( q.size(), 3 );
+	EXPECT_EQ( q[0], 0 );
+	EXPECT_EQ( q[1], 1 );
+	EXPECT_EQ( q[2], 2 );
+}
+TEST( Define, FOR_2 )
+{
+	std::vector<int> q;
+	FOR( i, -3, 3 )
+		q.emplace_back( i );
+	ASSERT_EQ( q.size(), 6 );
+	EXPECT_EQ( q[0], -3 );
+	EXPECT_EQ( q[1], -2 );
+	EXPECT_EQ( q[2], -1 );
+	EXPECT_EQ( q[3], 0 );
+	EXPECT_EQ( q[4], 1 );
+	EXPECT_EQ( q[5], 2 );
+}
