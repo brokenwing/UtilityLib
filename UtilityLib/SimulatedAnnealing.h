@@ -70,6 +70,7 @@ public:
 	void SetTmaxTmin( double t_max, double t_min, bool auto_estimate = false )noexcept;
 	void SetTemperatureCalcType( const tCoolDownType val )noexcept	{		m_temperature_calc_type = val;	}
 
+	std::pair<double, double> GetInitialTemperature()const noexcept	{		return std::make_pair( T_min, T_max );	}
 	decltype( m_iteration )GetIteration()const noexcept	{		return m_iteration;	}
 	double GetProgress()const noexcept	{		return m_progress;	}
 	const Solution& GetSolution()const noexcept	{		return opt_solution;	}
@@ -98,12 +99,16 @@ protected:
 	void Initialize();
 	bool Accept( const double old_score, const double new_score, const double temperature )const;
 	bool Terminate()const	{		return global_time.GetTime() > m_timelimit_s || m_iteration >= m_max_iteration;	}
-
-private:
+	
+	typedef LFA::vector<std::pair<double, double>> SampleListType;
 	//Reference:https://se.mathworks.com/matlabcentral/answers/uploaded_files/14677/B:COAP.0000044187.23143.bd.pdf
 	//<Score_min,Score_max>, p0 is accept prob, it says that p=1 is ok for most case
 	//calc the max/min with only worser solution
-	std::optional<double> EstimateTemperature( const LFA::vector<std::pair<double, double>>& sample, const double p0, const int p = 1, const int MAX_ITERATION = 1000 )const;
+	static std::optional<double> EstimateTemperature( const LFA::vector<std::pair<double, double>>& sample, const double p0, const int p = 1, const int MAX_ITERATION = 1000 );
+
+private:
+	//n_try until find worse solution
+	SampleListType GenerateSample( Solution start, const size_t sample_size, const int n_try = 3 );
 
 	//<progress ratio,T>
 	std::tuple<double, double> CalcTemperature( const tCoolDownType type )const;
@@ -147,7 +152,7 @@ inline bool SimulatedAnnealing<Solution, Engine>::Execute( unsigned int seed )
 	using namespace Util;
 	RELEASE_VER_TRY;
 
-	rng = RNG( seed );
+	rng = Engine( seed );
 	Initialize();
 	DefaultHook( tState::kInit );
 
@@ -207,37 +212,8 @@ void SimulatedAnnealing<Solution, Engine>::Initialize()
 	if( m_auto_estimate_T )
 	{
 		InitializeSolution( m_current );
-
-		//generate sample
-		LFA::vector<std::pair<double, double>> sample;
-		sample.reserve( m_sample_size );
-		for( int i = 0; i < m_sample_size; i++ )
-		{
-			double cur = CalcScore( m_current );
-			for( int j = 0; j < 3; j++ )
-			{
-				Neighbor( m_current );
-				double nxt = CalcScore( m_current );
-				//only consider worse value
-				if( LT( nxt, cur ) )
-				{
-					//sample.emplace_back(-cur,-nxt);
-					sample.emplace_back( nxt, cur );
-					break;
-				}
-				Rollback( m_current );
-			}
-			Neighbor( m_current );
-		}
-
+		auto sample = GenerateSample( m_current, m_sample_size );
 		auto temperature = EstimateTemperature( sample, 0.6 );
-#ifdef DEBUG_SA
-		LogFile::INFO.print( _T( "T_max = %.2lf\n" ), temperature.value_or( -1 ) );
-		LogFile::INFO.flush();
-		/*for (double i = 0.01; i <= 0.99; i += 0.01) {
-		LogFile::INFO.print(_T("P:%.2lf T_max = %.2lf\n"), i, estimate_temperature(sample, i).value_or(-1));
-		}*/
-#endif
 		if( temperature.has_value() )
 			T_max = temperature.value();
 		else
@@ -248,7 +224,6 @@ void SimulatedAnnealing<Solution, Engine>::Initialize()
 	InitializeSolution( m_current );
 	m_opt_score = m_score = CalcScore( m_current );
 	opt_solution = m_current;
-	//T_min = std::min(1e-3, 1.0 / (T_max + 1));
 }
 
 template<typename Solution, typename Engine>
@@ -267,7 +242,6 @@ bool SimulatedAnnealing<Solution, Engine>::Accept( const double old_score, const
 	assert( !isnan( std::exp( diff ) ) );
 	if( LE( rand_real_01( rng ), std::exp( diff ) ) )
 		return true;
-	//HSS::Utility::DebugPrintf(_T("%.8lf %.4lf %.4lf %.4lf\n"), std::exp(diff*ratio), diff*ratio,diff,ratio);
 	return false;
 }
 
@@ -275,16 +249,16 @@ bool SimulatedAnnealing<Solution, Engine>::Accept( const double old_score, const
 //<Score_min,Score_max>, p0 is accept prob, it says that p=1 is ok for most case
 //calc the max/min with only worser solution
 template<typename Solution, typename Engine>
-std::optional<double> SimulatedAnnealing<Solution, Engine>::EstimateTemperature( const LFA::vector<std::pair<double, double>>& sample, const double p0, const int p, const int MAX_ITERATION ) const
+std::optional<double> SimulatedAnnealing<Solution, Engine>::EstimateTemperature( const LFA::vector<std::pair<double, double>>& sample, const double p0, const int p, const int MAX_ITERATION )
 {
 	using namespace Util;
 	if( sample.empty() )
-		return 100;//maybe score does not change, no need to try high T_max
+		return 1;//maybe score does not change, no need to try high T_max
 	if( LE( p0, 0 ) || GE( p0, 1 ) )
 		return std::nullopt;
 
 	double T1 = 0;//any positive number is ok, but the following is recommended (to prevent overflow)
-	for( auto const& e : sample )
+	for( auto & e : sample )
 		T1 += std::fabs( e.second - e.first );
 	T1 /= sample.size();
 	T1 /= -std::log( p0 );
@@ -298,7 +272,7 @@ std::optional<double> SimulatedAnnealing<Solution, Engine>::EstimateTemperature(
 	{
 		n++;
 		double s1 = 0, s2 = 0;
-		for( auto const& e : sample )
+		for( auto & e : sample )
 		{
 			s1 += std::exp( -e.second / T1 );//MAX
 			s2 += std::exp( -e.first / T1 );//MIN
@@ -315,6 +289,35 @@ std::optional<double> SimulatedAnnealing<Solution, Engine>::EstimateTemperature(
 		}
 	} while( std::fabs( p0 - p1 ) > 1e-4 );//check if converge
 	return T1;
+}
+
+//n_try until find worse solution
+template<typename Solution, typename Engine>
+inline SimulatedAnnealing<Solution, Engine>::SampleListType SimulatedAnnealing<Solution, Engine>::GenerateSample( Solution start, const size_t sample_size, const int n_try )
+{
+	using namespace Util;
+
+	//generate sample
+	SampleListType sample;
+	sample.reserve( sample_size );
+	for( int i = 0; i < (int)sample_size; i++ )
+	{
+		double cur = CalcScore( start );
+		for( int j = 0; j < n_try; j++ )
+		{
+			Neighbor( start );
+			double nxt = CalcScore( start );
+			//only consider worse value
+			if( LT( nxt, cur ) )
+			{
+				sample.emplace_back( nxt, cur );
+				break;
+			}
+			Rollback( start );
+		}
+		Neighbor( start );
+	}
+	return sample;
 }
 
 //<progress ratio,T>
