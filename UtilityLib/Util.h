@@ -3,6 +3,9 @@
 #include "CommonDef.h"
 #include <iostream>
 
+#undef max
+#undef min
+
 namespace Util
 {
 //Float Compare

@@ -12,7 +12,20 @@
 #include <string>
 #include <sstream>
 
-#define FOR(i,a,b) for(int i=a; i<b; i++)
+#define FOR(i,a,b) for(int i=(a); (i)<(b); (i)++)
+//#define FOR(i,a,b,step) for(int i=(a); (i)<(b); (i)+=(step))
+
+#ifdef _DEBUG
+#define RELEASE_VER_TRY
+#define RELEASE_VER_CATCH_START( toCatch )
+#define RELEASE_VER_CATCH_CONTENT( contents )
+#define RELEASE_VER_CATCH_END
+#else
+#define RELEASE_VER_TRY try {
+#define RELEASE_VER_CATCH_START( toCatch ) }catch( toCatch ){
+#define RELEASE_VER_CATCH_CONTENT( contents ) contents;
+#define RELEASE_VER_CATCH_END }
+#endif
 
 template<typename T>
 using DefaultAllocator = std::allocator<T>;//LowFragmentationAllocator<T>;
@@ -66,6 +79,9 @@ using istringstream = std::basic_istringstream<char, std::char_traits<char>, Def
 namespace Util
 {
 constexpr double eps = 1e-6;
+//Nondeterministic Random Number Generator
+typedef std::random_device NRNG;
+//Pseudorandom number generator
 typedef std::mt19937 RNG;
 typedef std::mt19937_64 RNG64;
 }

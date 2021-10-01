@@ -45,6 +45,14 @@ TEST( Math, MillerRabin_large )
 	EXPECT_FALSE( MillerRabin( 252601, n, rng ) );
 }
 
+TEST( Math, MillerRabin_engine )
+{
+	Util::NRNG rng;
+	int n = 9;
+	EXPECT_TRUE( MillerRabin( 101, n, rng ) );
+	EXPECT_FALSE( MillerRabin( 100, n, rng ) );
+}
+
 TEST( Math, isPrime )
 {
 	EXPECT_FALSE( isPrime( -1 ) );
