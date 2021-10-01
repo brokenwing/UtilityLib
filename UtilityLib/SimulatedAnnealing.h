@@ -24,14 +24,17 @@ public:
 		kAcceptSolution = 8,
 		kRollBack = 16,
 		kFinish = 32,
-		kUndefinded = 64,
+		kResampleT = 64,
+		kUndefinded = 128,
 	};
 	struct LogInfo
 	{
 		double score = 0;
+		double best_score = 0;
 		std::int64_t iteration = 0;
 		double time_s = 0;
 		double progress = 0;
+		double temperature = 0;
 	};
 
 private:
@@ -44,6 +47,7 @@ private:
 	double m_opt_score = 0;
 	Solution m_current;
 	double m_score = 0;
+	double m_rollback_score = 0;
 
 	double T_max = 0;
 	double T_min = 1e-3;
@@ -59,13 +63,21 @@ private:
 	std::int64_t m_max_log_size = 0;
 	std::int64_t m_iteration_per_log = 0;
 	int m_collect_flag = (int)tState::kAcceptSolution | (int)tState::kFinish;
-
+	
+	typedef LFA::deque<std::pair<double, double>> SampleListType;
+	double m_p0 = 0.9;
+	int m_cnt_recalcT = 0;
+	std::int64_t m_iteration_for_resample = 0;
+	std::int64_t m_last_sample_iteration = 0;
+	SampleListType m_resampleList;
 protected:
 	mutable Engine rng;
 
 public:
 	//Record information after each state (or finish) iff iteration changes >= m_max_iteration/max_log_size
 	void ConfigLog( std::int64_t max_log_size = 0, int flag = (int)tState::kAcceptSolution | (int)tState::kFinish ) noexcept;
+	//ReCalc max/min Temperature during SA for at most n times
+	void ConfigResample( int n, double p0 = 0.9 )noexcept	{		m_cnt_recalcT = n; m_p0 = p0;	}
 	void Config( double timelimit_s, std::int64_t max_iteration, bool progress_calc_from_iteration = true, size_t sample_size = 300 )noexcept;
 	void SetTmaxTmin( double t_max, double t_min, bool auto_estimate = false )noexcept;
 	void SetTemperatureCalcType( const tCoolDownType val )noexcept	{		m_temperature_calc_type = val;	}
@@ -95,16 +107,16 @@ protected:
 		Hook( state );
 	}
 	void UpdateLog( const tState state );
+	double GetRollbackScore()const noexcept	{		return m_rollback_score;	}
 
 	void Initialize();
 	bool Accept( const double old_score, const double new_score, const double temperature )const;
 	bool Terminate()const	{		return global_time.GetTime() > m_timelimit_s || m_iteration >= m_max_iteration;	}
 	
-	typedef LFA::vector<std::pair<double, double>> SampleListType;
 	//Reference:https://se.mathworks.com/matlabcentral/answers/uploaded_files/14677/B:COAP.0000044187.23143.bd.pdf
 	//<Score_min,Score_max>, p0 is accept prob, it says that p=1 is ok for most case
 	//calc the max/min with only worser solution
-	static std::optional<double> EstimateTemperature( const LFA::vector<std::pair<double, double>>& sample, const double p0, const int p = 1, const int MAX_ITERATION = 1000 );
+	static std::optional<double> EstimateTemperature( const SampleListType& sample, const double p0, const int p = 1, const int MAX_ITERATION = 1000 );
 
 private:
 	//n_try until find worse solution
@@ -158,6 +170,7 @@ inline bool SimulatedAnnealing<Solution, Engine>::Execute( unsigned int seed )
 
 	while( !Terminate() )
 	{
+		//calc T
 		std::tie( m_progress, m_cur_T ) = CalcTemperature( m_temperature_calc_type );
 		Neighbor( m_current );
 		const double tmp_score = CalcScore( m_current );
@@ -165,6 +178,7 @@ inline bool SimulatedAnnealing<Solution, Engine>::Execute( unsigned int seed )
 
 		if( Accept( m_score, tmp_score, m_cur_T ) )
 		{
+			//update opt
 			if( GT( tmp_score, m_opt_score ) )
 			{
 				opt_solution = m_current;
@@ -176,9 +190,30 @@ inline bool SimulatedAnnealing<Solution, Engine>::Execute( unsigned int seed )
 		}
 		else
 		{
+			//resample
+			if( m_cnt_recalcT > 0 )
+			{
+				m_resampleList.emplace_back( tmp_score, m_score );
+				if( m_resampleList.size() > m_sample_size )
+					m_resampleList.pop_front();
+				if( m_resampleList.size() >= m_sample_size && m_iteration_for_resample + m_last_sample_iteration <= m_iteration )
+				{
+					double p0 = m_p0 * ( 1 - GetProgress() );
+					auto Tnxt = EstimateTemperature( m_resampleList, std::max( p0, 0.1 ) );
+					double t = T_max;
+					if( Tnxt.has_value() && Tnxt.value() > 3 )
+						t = Tnxt.value();
+					this->SetTmaxTmin( t, T_min );
+					m_last_sample_iteration = m_iteration;
+					DefaultHook( tState::kResampleT );
+				}
+			}
+			//roll back
+			m_rollback_score = tmp_score;
 			Rollback( m_current );
 			DefaultHook( tState::kRollBack );
 		}
+
 		++m_iteration;
 	}
 	DefaultHook( tState::kFinish );
@@ -198,7 +233,7 @@ inline void SimulatedAnnealing<Solution, Engine>::UpdateLog( const tState state 
 	if( m_max_log_size > 0 && ( (int)state & m_collect_flag ) != 0
 		&& ( state == tState::kFinish || m_logList.empty() || m_logList.back().iteration + m_iteration_per_log <= m_iteration ) )
 	{
-		m_logList.emplace_back( m_opt_score, m_iteration, global_time.GetTime(), m_progress );
+		m_logList.emplace_back( GetCurrScore(), GetScore(), GetIteration(), global_time.GetTime(), GetProgress(), m_cur_T );
 	}
 }
 
@@ -207,13 +242,18 @@ void SimulatedAnnealing<Solution, Engine>::Initialize()
 {
 	using namespace Util;
 	global_time.SetTime();
+	m_logList.clear();
+	m_last_sample_iteration = 0;
+	m_resampleList.clear();
 	m_iteration = 0;
+	if( m_cnt_recalcT > 0 )
+		m_iteration_for_resample = std::max( 1LL, m_max_iteration / m_cnt_recalcT );
 
 	if( m_auto_estimate_T )
 	{
 		InitializeSolution( m_current );
 		auto sample = GenerateSample( m_current, m_sample_size );
-		auto temperature = EstimateTemperature( sample, 0.6 );
+		auto temperature = EstimateTemperature( sample, m_p0 );
 		if( temperature.has_value() )
 			T_max = temperature.value();
 		else
@@ -249,7 +289,7 @@ bool SimulatedAnnealing<Solution, Engine>::Accept( const double old_score, const
 //<Score_min,Score_max>, p0 is accept prob, it says that p=1 is ok for most case
 //calc the max/min with only worser solution
 template<typename Solution, typename Engine>
-std::optional<double> SimulatedAnnealing<Solution, Engine>::EstimateTemperature( const LFA::vector<std::pair<double, double>>& sample, const double p0, const int p, const int MAX_ITERATION )
+std::optional<double> SimulatedAnnealing<Solution, Engine>::EstimateTemperature( const SampleListType& sample, const double p0, const int p, const int MAX_ITERATION )
 {
 	using namespace Util;
 	if( sample.empty() )
@@ -299,7 +339,6 @@ inline SimulatedAnnealing<Solution, Engine>::SampleListType SimulatedAnnealing<S
 
 	//generate sample
 	SampleListType sample;
-	sample.reserve( sample_size );
 	for( int i = 0; i < (int)sample_size; i++ )
 	{
 		double cur = CalcScore( start );
