@@ -394,6 +394,30 @@ TEST( LongInt, exponent_5)
 	auto s2 = ( a ^ ( 88 - 55 ) ).ToString( ' ' );
 	EXPECT_EQ( s1, s2 );
 }
+TEST( LongInt, exponent_sign_1)
+{
+	LongInt a( "-4" );
+	auto s1 = ( a ^ 2 ).ToString( ' ' );
+	EXPECT_EQ( s1, "16" );
+}
+TEST( LongInt, exponent_sign_2)
+{
+	LongInt a( "-4" );
+	auto s1 = ( a ^ 3 ).ToString( ' ' );
+	EXPECT_EQ( s1, "-64" );
+}
+TEST( LongInt, exponent_sign_3)
+{
+	LongInt a( "-4" );
+	auto s1 = ( a ^ 1 ).ToString( ' ' );
+	EXPECT_EQ( s1, "-4" );
+}
+TEST( LongInt, exponent_sign_4)
+{
+	LongInt a( "-4" );
+	auto s1 = ( a ^ 0 ).ToString( ' ' );
+	EXPECT_EQ( s1, "1" );
+}
 TEST( _LongInt, rand)
 {
 	RNG rng( 0 );
@@ -835,20 +859,20 @@ TEST( LongInt, ModFastExponentiation_large_mod )
 {
 	LongInt a = 10;
 	LongInt mod( "99999999 99999999 99999999" );
-	auto r = a.ModExponentiation( 15, mod );
+	auto r = a.ModPow( 15, mod );
 }
 TEST( LongInt, ModFastExponentiation_small_mod )
 {
 	LongInt a = 10;
 	LongInt mod( "12 99999999" );
-	auto r = a.ModExponentiation( 15, mod );
+	auto r = a.ModPow( 15, mod );
 	EXPECT_EQ( r.ToString(), "1000769230" );
 }
 TEST( LongInt, ModFastExponentiation_mod )
 {
 	LongInt a = 12345;
 	LongInt mod( "123 456" );
-	auto r1 = a.ModExponentiation( 55, mod );
+	auto r1 = a.ModPow( 55, mod );
 	auto r2 = ( a ^ 55 ) % mod;
 	EXPECT_EQ( r1, r2 );
 }

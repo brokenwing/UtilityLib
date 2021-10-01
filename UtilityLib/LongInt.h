@@ -99,6 +99,42 @@ public:
 		return ret;
 	}
 
+	bool MillerRabinPrimeTest( size_t numOftest, RNG& rng )
+	{
+		if( this->operator<( _LongInt( 2 ) ) )
+			return false;
+		if( this->operator==( _LongInt( 2 ) ) )
+			return true;
+		if( this->isEven() )
+			return false;
+		auto randombase = [&] ( _LongInt& val )->void
+		{
+			val = Rand( this->n, rng );
+			val.m_val[this->n - 1] %= m_val[this->n - 1];
+			val.n = val.count_n( this->n - 1 );
+		};
+
+		_LongInt s = *this - _LongInt( 1 );
+		while( s.isEven() )
+			s /= 2;
+		_LongInt base, temp, mod;
+		while( numOftest-- > 0 )
+		{
+			randombase( base );
+			temp = s;
+			//UnsignedModPow(base,)
+			mod = modulo( base, temp, p );
+			while( temp != p - 1 && mod != 1 && mod != p - 1 )
+			{
+				mod = mulmod( mod, mod, p );
+				temp <<= 1;
+			}
+			if( mod != p - 1 && ( temp & 1 ) == 0 )
+				return false;
+		}
+		return true;
+	}
+
 protected:
 	void swap( _LongInt& other )
 	{
@@ -327,8 +363,9 @@ protected:
 
 	static unsigned int UnsignedDivideShort( const _LongInt& a, const _LongInt& b )
 	{
-		assert( a >= b );
 		assert( a.n == b.n || a.n == b.n + 1 );
+		if( a.operator<( b ) )
+			return 0;
 		unsigned int l = 0;
 		unsigned int r = RADIX - 1;
 		if( a.n == b.n )
@@ -363,6 +400,13 @@ protected:
 		assert( a >= _LongInt( b ) );
 		assert( b != 0 );
 		assert( b < RADIX );
+		if( a.operator<( _LongInt( b ) ) )
+		{
+			assert( a.n == 1 );
+			quotient = 0;
+			remain = a.m_val[0];
+			return;
+		}
 		quotient = a;
 		remain = 0;
 		for( int i = a.n - 1; i >= 0; i-- )
@@ -376,8 +420,13 @@ protected:
 	}
 	static void UnsignedDivide( const _LongInt& a, const _LongInt& b, _LongInt& quotient, _LongInt& remain )
 	{
-		assert( a >= b );
 		assert( !b.isZero() );
+		if( a.operator<( b ) )
+		{
+			quotient = 0;
+			remain = a;
+			return;
+		}
 		quotient.m_val.assign( a.n - b.n + 1, 0 );
 		remain.m_val.reserve( a.n );
 		remain.m_val.clear();
@@ -401,8 +450,46 @@ protected:
 			remain.n = 1;
 		quotient.n = quotient.count_n( a.n - b.n + 1 );
 	}
+	static _LongInt UnsignedPow( const _LongInt& base, size_t exponent )
+	{
+		if( exponent == 0 )
+			return _LongInt( 1 );
+		thread_local _LongInt tmp;
+		return Math::FastExponentiation<_LongInt>( base, exponent, []( const _LongInt& l, const _LongInt& r )->_LongInt
+		{
+			UnsignedMultiply( l, r, tmp );
+			return tmp;
+		} );
+	}
+	static _LongInt UnsignedModPow( const _LongInt& base, _LongInt exponent, const _LongInt& mod )
+	{
+		T x = 1;
+		T y = modulo( base, mod );
+		while( exponent > 0 )
+		{
+			if( ( exponent & 1 ) == 1 )
+				x = modulo( mul( x, y ), mod );
+			y = modulo( mul( y, y ), mod );
+			exponent >>= 1;
+		}
+		return modulo( x, mod );
+		if( exponent.isZero() )
+			return _LongInt( 1 );
+		thread_local _LongInt tmp, dummy;
+		return Math::FastExponentiation<_LongInt>( base, exponent, mod,
+												   [] ( const _LongInt& a, const _LongInt& b )->_LongInt
+		{
+			UnsignedMultiply( a, b, tmp );
+			return tmp;
+		},
+												   [] ( const _LongInt& a, const _LongInt& b )->_LongInt
+		{
+			UnsignedDivide( a, b, dummy, tmp );
+			return tmp;
+		} );
+	}
 };
-;
+
 //RADIX = 10^8
 class LongInt :public _LongInt<100000000>
 {
@@ -570,8 +657,6 @@ public:
 			return LongInt( 0 );
 		if( other == 0 )
 			throw Exception_DivByZero();
-		if( _LongInt::operator<( other ) )
-			return LongInt( 0 );
 		if( abs( other ) < RADIX )
 		{
 			unsigned int r;
@@ -589,14 +674,11 @@ public:
 			return LongInt( 0 );
 		if( other == 0 )
 			throw Exception_DivByZero();
-		if( _LongInt::operator<( other ) )
-			return LongInt( 0 );
 		if( abs( other ) < RADIX )
 		{
 			unsigned int r;
 			LongInt q;
 			UnsignedDivide( *this, abs( other ), q, r );
-			
 			return sign ? r : -(int)r;
 		}
 		else
@@ -608,8 +690,6 @@ public:
 			return LongInt( 0 );
 		if( other.isZero() )
 			throw Exception_DivByZero();
-		if( _LongInt::operator<( other ) )
-			return LongInt( 0 );
 		LongInt q, r;
 		UnsignedDivide( *this, other, q, r );
 		q.sign = this->sign == other.sign;
@@ -621,8 +701,6 @@ public:
 			return LongInt( 0 );
 		if( other.isZero() )
 			throw Exception_DivByZero();
-		if( _LongInt::operator<( other ) )
-			return *this;
 		LongInt q, r;
 		UnsignedDivide( *this, other, q, r );
 		r.sign = this->sign;
@@ -631,26 +709,16 @@ public:
 	//FastExponentiation
 	LongInt operator^( size_t exponent )const
 	{
-		if( exponent == 0 )
-			return LongInt( 1 );
-		return Math::FastExponentiation( *this, exponent, [] ( const LongInt& l, const LongInt& r )
-		{
-			return l * r;
-		} );
+		LongInt r = UnsignedPow( *this, exponent );
+		r.sign = this->sign || ( exponent % 2 == 0 );
+		return r;
 	}
-	LongInt ModExponentiation( size_t exponent, const LongInt& mod )const
+	//FastExponentiation with mod
+	LongInt ModPow( size_t exponent, const LongInt& mod )const
 	{
-		if( exponent == 0 )
-			return LongInt( 1 );
-		return Math::FastExponentiation<LongInt>( *this, exponent, mod,
-												  [] ( const LongInt& a, const LongInt& b )->LongInt
-		{
-			return a * b;
-		},
-												  [] ( const LongInt& a, const LongInt& b )->LongInt
-		{
-			return a % b;
-		} );
+		LongInt r = UnsignedModPow( *this, exponent, mod );
+		r.sign = this->sign || ( exponent % 2 == 0 );
+		return r;
 	}
 };
 
