@@ -11,6 +11,9 @@ template <typename Solution, typename Engine = Util::RNG>
 class SimulatedAnnealing
 {
 public:
+	using SolutionType = Solution;
+	using RNGType = Engine;
+
 	enum struct tCoolDownType
 	{
 		kLinear,
@@ -47,7 +50,7 @@ private:
 	double m_opt_score = 0;
 	Solution m_current;
 	double m_score = 0;
-	double m_rollback_score = 0;
+	double m_nxt_score = 0;
 
 	double T_max = 0;
 	double T_min = 1e-3;
@@ -108,7 +111,7 @@ protected:
 		Hook( state );
 	}
 	void UpdateLog( const tState state );
-	double GetRollbackScore()const noexcept	{		return m_rollback_score;	}
+	double GetNextScore()const noexcept	{		return m_nxt_score;	}
 
 	void Initialize();
 	bool Accept( const double old_score, const double new_score, const double temperature )const;
@@ -174,13 +177,13 @@ inline bool SimulatedAnnealing<Solution, Engine>::Execute( unsigned int seed )
 		//calc T
 		std::tie( m_progress, m_cur_T ) = CalcTemperature( m_temperature_calc_type );
 		Neighbor( m_current );
-		const double tmp_score = CalcScore( m_current );
+		m_nxt_score = CalcScore( m_current );
 		DefaultHook( tState::kNeighbor );
 
 		//resample
-		if( ( m_cnt_recalcT > 0 || !m_is_initialized_T ) && GT( m_score, tmp_score ) )
+		if( ( m_cnt_recalcT > 0 || !m_is_initialized_T ) && GT( m_score, m_nxt_score ) )
 		{
-			m_resampleList.emplace_back( tmp_score, m_score );
+			m_resampleList.emplace_back( m_nxt_score, m_score );
 			if( m_resampleList.size() > m_sample_size )
 				m_resampleList.pop_front();
 			if( m_resampleList.size() >= m_sample_size && ( !m_is_initialized_T || m_iteration_for_resample + m_last_sample_iteration <= m_iteration ) )
@@ -196,22 +199,21 @@ inline bool SimulatedAnnealing<Solution, Engine>::Execute( unsigned int seed )
 				DefaultHook( tState::kResampleT );
 			}
 		}
-		if( Accept( m_score, tmp_score, m_cur_T ) )
+		if( Accept( m_score, m_nxt_score, m_cur_T ) )
 		{
 			//update opt
-			if( GT( tmp_score, m_opt_score ) )
+			if( GT( m_nxt_score, m_opt_score ) )
 			{
 				opt_solution = m_current;
-				m_opt_score = tmp_score;
+				m_opt_score = m_nxt_score;
 				DefaultHook( tState::kUpdateSolution );
 			}
-			m_score = tmp_score;
+			m_score = m_nxt_score;
 			DefaultHook( tState::kAcceptSolution );
 		}
 		else
 		{
 			//roll back
-			m_rollback_score = tmp_score;
 			Rollback( m_current );
 			DefaultHook( tState::kRollBack );
 		}
