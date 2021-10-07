@@ -202,8 +202,9 @@ public:
 
 TEST( SA_TSP_sample, sa_basic )
 {
-	SA_TSP_sample sa( 50 );
-	sa.Config( 1, 10000, true, 50 );
+	int n = 50;
+	SA_TSP_sample sa( n );
+	sa.Config( 1, 10000, true, n );
 	sa.ConfigLog( 10 );
 	//sa.SetTmaxTmin( 0, 0.1, true );
 	sa.Execute( 0 );
@@ -221,8 +222,9 @@ TEST( SA_TSP_sample, sa_basic )
 }
 TEST( SA_TSP_sample, sa_basic_resample )
 {
-	SA_TSP_sample sa( 50 );
-	sa.Config( 1, 10000, true, 50 );
+	int n = 50;
+	SA_TSP_sample sa( n );
+	sa.Config( 1, 10000, true, n );
 	sa.ConfigLog( 10 );
 	//sa.SetTmaxTmin( 0, 0.1, true );
 	sa.ConfigResample( 10 );

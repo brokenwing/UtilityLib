@@ -65,6 +65,7 @@ private:
 	int m_collect_flag = (int)tState::kAcceptSolution | (int)tState::kFinish;
 	
 	typedef LFA::deque<std::pair<double, double>> SampleListType;
+	bool m_is_initialized_T = false;
 	double m_p0 = 0.9;
 	int m_cnt_recalcT = 0;
 	std::int64_t m_iteration_for_resample = 0;
@@ -176,6 +177,25 @@ inline bool SimulatedAnnealing<Solution, Engine>::Execute( unsigned int seed )
 		const double tmp_score = CalcScore( m_current );
 		DefaultHook( tState::kNeighbor );
 
+		//resample
+		if( ( m_cnt_recalcT > 0 || !m_is_initialized_T ) && GT( m_score, tmp_score ) )
+		{
+			m_resampleList.emplace_back( tmp_score, m_score );
+			if( m_resampleList.size() > m_sample_size )
+				m_resampleList.pop_front();
+			if( m_resampleList.size() >= m_sample_size && ( !m_is_initialized_T || m_iteration_for_resample + m_last_sample_iteration <= m_iteration ) )
+			{
+				double p0 = m_p0 * ( 1 - GetProgress() );
+				auto Tnxt = EstimateTemperature( m_resampleList, std::max( p0, 0.1 ) );
+				double t = T_max;
+				if( Tnxt.has_value() && Tnxt.value() > 3 )
+					t = Tnxt.value();
+				this->SetTmaxTmin( t, T_min );
+				m_last_sample_iteration = m_iteration;
+				m_is_initialized_T = true;
+				DefaultHook( tState::kResampleT );
+			}
+		}
 		if( Accept( m_score, tmp_score, m_cur_T ) )
 		{
 			//update opt
@@ -190,24 +210,6 @@ inline bool SimulatedAnnealing<Solution, Engine>::Execute( unsigned int seed )
 		}
 		else
 		{
-			//resample
-			if( m_cnt_recalcT > 0 )
-			{
-				m_resampleList.emplace_back( tmp_score, m_score );
-				if( m_resampleList.size() > m_sample_size )
-					m_resampleList.pop_front();
-				if( m_resampleList.size() >= m_sample_size && m_iteration_for_resample + m_last_sample_iteration <= m_iteration )
-				{
-					double p0 = m_p0 * ( 1 - GetProgress() );
-					auto Tnxt = EstimateTemperature( m_resampleList, std::max( p0, 0.1 ) );
-					double t = T_max;
-					if( Tnxt.has_value() && Tnxt.value() > 3 )
-						t = Tnxt.value();
-					this->SetTmaxTmin( t, T_min );
-					m_last_sample_iteration = m_iteration;
-					DefaultHook( tState::kResampleT );
-				}
-			}
 			//roll back
 			m_rollback_score = tmp_score;
 			Rollback( m_current );
@@ -246,19 +248,14 @@ void SimulatedAnnealing<Solution, Engine>::Initialize()
 	m_last_sample_iteration = 0;
 	m_resampleList.clear();
 	m_iteration = 0;
+	m_is_initialized_T = !m_auto_estimate_T;
 	if( m_cnt_recalcT > 0 )
 		m_iteration_for_resample = std::max( 1LL, m_max_iteration / m_cnt_recalcT );
 
 	if( m_auto_estimate_T )
 	{
 		InitializeSolution( m_current );
-		auto sample = GenerateSample( m_current, m_sample_size );
-		auto temperature = EstimateTemperature( sample, m_p0 );
-		if( temperature.has_value() )
-			T_max = temperature.value();
-		else
-			throw std::exception( "SimulatedAnnealing::fail to calc initial temperature" );
-		assert( GT( T_max, 0 ) );
+		T_max = 1e60;
 	}
 
 	InitializeSolution( m_current );
@@ -269,6 +266,8 @@ void SimulatedAnnealing<Solution, Engine>::Initialize()
 template<typename Solution, typename Engine>
 bool SimulatedAnnealing<Solution, Engine>::Accept( const double old_score, const double new_score, const double temperature ) const
 {
+	if( !m_is_initialized_T )
+		return true;
 	using namespace Util;
 	static const std::uniform_real_distribution<double> rand_real_01 = std::uniform_real_distribution<double>( 0.0, 1.0 );
 
