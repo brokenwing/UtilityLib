@@ -9,7 +9,8 @@ class RawLongInt :public RawULongInt<_RADIX>
 {
 public:
 	static constexpr unsigned int RADIX = _RADIX;
-
+private:
+	static thread_local RawULongInt<_RADIX> Dummy;
 protected:
 	bool sign = true;//positive or negative
 
@@ -133,15 +134,11 @@ public:
 
 	RawLongInt operator+( const RawLongInt& other )const
 	{
-		RawLongInt ret;
-		SignedPlus( *this, other, sign, other.sign, ret );
-		return ret;
+		return SignedPlus( *this, other, sign, other.sign );;
 	}
 	RawLongInt operator-( const RawLongInt& other )const
 	{
-		RawLongInt ret;
-		SignedPlus( *this, other, sign, !other.sign, ret );
-		return ret;
+		return SignedPlus( *this, other, sign, !other.sign );
 	}
 	RawLongInt operator*( int other )const
 	{
@@ -188,8 +185,7 @@ public:
 		if( abs( other ) < RADIX )
 		{
 			unsigned int r;
-			RawLongInt q;
-			RawULongInt<RADIX>::UnsignedDivide( *this, abs( other ), q, r );
+			RawULongInt<RADIX>::UnsignedDivide( *this, abs( other ), Dummy, r );
 			return sign ? r : -(int)r;
 		}
 		else
@@ -201,8 +197,8 @@ public:
 			return RawLongInt( 0 );
 		if( other.isZero() )
 			throw Exception_DivByZero();
-		RawLongInt q, r;
-		RawULongInt<RADIX>::UnsignedDivide( *this, other, q, r );
+		RawLongInt q;
+		RawULongInt<RADIX>::UnsignedDivide( *this, other, q, Dummy );
 		q.sign = this->sign == other.sign;
 		return q;
 	}
@@ -212,8 +208,8 @@ public:
 			return RawLongInt( 0 );
 		if( other.isZero() )
 			throw Exception_DivByZero();
-		RawLongInt q, r;
-		RawULongInt<RADIX>::UnsignedDivide( *this, other, q, r );
+		RawLongInt r;
+		RawULongInt<RADIX>::UnsignedDivide( *this, other, Dummy, r );
 		r.sign = this->sign;
 		return r;
 	}
@@ -225,16 +221,17 @@ public:
 		return r;
 	}
 	//FastExponentiation with mod
-	RawLongInt ModPow( size_t exponent, const RawLongInt& mod )const
+	RawLongInt PowerMod( RawULongInt<RADIX> exponent, const RawLongInt& mod )const
 	{
-		RawLongInt r = RawULongInt<RADIX>::UnsignedModPow( *this, exponent, mod );
+		RawLongInt r = RawULongInt<RADIX>::UnsignedPowerMod( *this, exponent, mod );
 		r.sign = this->sign || ( exponent % 2 == 0 );
 		return r;
 	}
 
 protected:
-	static void SignedPlus( const RawLongInt& a, const RawLongInt& b, bool sign_a, bool sign_b, RawLongInt& c )
+	static RawLongInt SignedPlus( const RawLongInt& a, const RawLongInt& b, bool sign_a, bool sign_b )
 	{
+		RawLongInt c;
 		if( sign_a == sign_b )
 		{
 			RawLongInt<RADIX>::UnsignedPlus( a, b, c );
@@ -255,6 +252,10 @@ protected:
 			//- + < +
 			c.sign = ge ^ sign_b;
 		}
+		return c;
 	}
 };
+
+template<unsigned int _RADIX>
+thread_local RawULongInt<_RADIX> RawLongInt<_RADIX>::Dummy( 0 );
 }

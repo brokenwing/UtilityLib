@@ -104,9 +104,9 @@ public:
 	{
 		return RawLongInt::operator^( exponent );
 	}
-	LongInt ModPow( size_t exponent, const LongInt& mod )const
+	LongInt PowerMod( ULongInt exponent, const LongInt& mod )const
 	{
-		return RawLongInt::ModPow( exponent, mod );
+		return RawLongInt::PowerMod( exponent, mod );
 	}
 
 	LFA::string ToString( char delimiter = 0 ) const

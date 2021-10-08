@@ -11,7 +11,8 @@ class RawULongInt
 {
 public:
 	static constexpr unsigned int RADIX = _RADIX;
-
+private:
+	static thread_local RawULongInt Dummy;
 protected:
 	typedef unsigned long long ULL;
 
@@ -120,6 +121,97 @@ public:
 	bool operator!=( const RawULongInt& other )const
 	{
 		return !( RawULongInt::operator== ( other ) );
+	}
+
+	RawULongInt& operator++()
+	{
+		*this += RawULongInt( 1 );
+		return *this;
+	}
+	RawULongInt& operator--()
+	{
+		*this -= RawULongInt( 1 );
+		return *this;
+	}
+	RawULongInt operator++( int )
+	{
+		auto tmp = *this;
+		*this += RawULongInt( 1 );
+		return tmp;
+	}
+	RawULongInt operator--( int )
+	{
+		auto tmp = *this;
+		*this -= RawULongInt( 1 );
+		return tmp;
+	}
+
+	RawULongInt operator+( const RawULongInt& other )const
+	{
+		RawULongInt ret;
+		UnsignedPlus( *this, other, ret );
+		return ret;
+	}
+	RawULongInt operator-( const RawULongInt& other )const
+	{
+		RawULongInt ret;
+		UnsignedSub( *this, other, ret );
+		return ret;
+	}
+	RawULongInt operator*( const RawULongInt& other )const
+	{
+		RawULongInt ret;
+		UnsignedMultiply( *this, other, ret );
+		return ret;
+	}
+	RawULongInt operator/( const RawULongInt& other )const
+	{
+		RawULongInt ret;
+		UnsignedDivide( *this, other, ret, Dummy );
+		return ret;
+	}
+	RawULongInt operator%( const RawULongInt& other )const
+	{
+		RawULongInt ret;
+		UnsignedDivide( *this, other, Dummy, ret );
+		return ret;
+	}
+
+	RawULongInt& operator+=( const RawULongInt& other )
+	{
+		*this = operator+( other );
+		return *this;
+	}
+	RawULongInt& operator-=( const RawULongInt& other )
+	{
+		*this = operator-( other );
+		return *this;
+	}
+	RawULongInt& operator*=( const RawULongInt& other )
+	{
+		*this = operator*( other );
+		return *this;
+	}
+	RawULongInt& operator/=( const RawULongInt& other )
+	{
+		*this = operator/( other );
+		return *this;
+	}
+	RawULongInt& operator%=( const RawULongInt& other )
+	{
+		*this = operator%( other );
+		return *this;
+	}
+
+	//FastExponentiation
+	RawULongInt operator^( size_t exponent )const
+	{
+		return RawULongInt<RADIX>::UnsignedPow( *this, exponent );
+	}
+	//FastExponentiation with mod
+	RawULongInt PowerMod( RawULongInt exponent, const RawULongInt& mod )const
+	{
+		return RawULongInt<RADIX>::UnsignedPowerMod( *this, exponent, mod );
 	}
 
 	template<typename Engine = Util::RNG>
@@ -438,32 +530,21 @@ protected:
 			return tmp;
 		} );
 	}
-	static RawULongInt UnsignedModPow( const RawULongInt& base, size_t exponent, const RawULongInt& mod )
+	static RawULongInt UnsignedPowerMod( const RawULongInt& base, RawULongInt exponent, const RawULongInt& mod )
 	{
-		/*_LongInt x( 1 );
-		_LongInt y = modulo( base, mod );
-		while( exponent > 0 )
+		RawULongInt x( 1 );
+		RawULongInt y = base % mod;
+		while( !exponent.isZero() )
 		{
-			if( ( exponent & 1 ) == 1 )
-				x = modulo( mul( x, y ), mod );
-			y = modulo( mul( y, y ), mod );
-			exponent >>= 1;
+			if( exponent.isOdd() )
+				x = ( x * y ) % mod;
+			y = ( y * y ) % mod;
+			exponent /= 2;
 		}
-		return modulo( x, mod );*/
-		if( exponent == 0 )
-			return RawULongInt( 1 );
-		thread_local RawULongInt tmp, dummy;
-		return Math::FastExponentiation<RawULongInt>( base, exponent, mod,
-												   [] ( const RawULongInt& a, const RawULongInt& b )->RawULongInt
-		{
-			UnsignedMultiply( a, b, tmp );
-			return tmp;
-		},
-												   [] ( const RawULongInt& a, const RawULongInt& b )->RawULongInt
-		{
-			UnsignedDivide( a, b, dummy, tmp );
-			return tmp;
-		} );
+		return x;
 	}
 };
+
+template<unsigned int _RADIX>
+thread_local RawULongInt<_RADIX> RawULongInt<_RADIX>::Dummy( 0 );
 }
