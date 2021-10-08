@@ -79,6 +79,7 @@ public:
 	{
 		return m_val[nth - 1];
 	}
+	decltype( n ) GetBit()const noexcept	{		return n;	}
 	bool isEven()const
 	{
 		assert( n > 0 );
@@ -243,27 +244,38 @@ public:
 			val = Rand( this->n, rng );
 			std::uniform_int_distribution<int>  r( 0, this->GetHigh( 1 ) - 1 );
 			val.m_val[this->n - 1] = r( rng );
-			val.n = val.count_n( this->n - 1 );
+			val.n = val.count_n( this->n );
 			if( val <= RawULongInt( 1 ) )
 				val = 2;
+			assert( val < *this );
 		};
 
 		RawULongInt s = *this - RawULongInt( 1 );
+		int r = 0;
 		while( s.isEven() && !s.isZero() )
+		{
 			s /= 2;
-		RawULongInt base, temp, mod;
+			++r;
+		}
+		RawULongInt base, mod;
 		const RawULongInt p_1 = *this - 1;
 		while( numOftest-- > 0 )
 		{
 			randombase( base );
-			temp = s;
-			mod = UnsignedPowerMod( base, temp, *this );
-			while( temp != p_1 && mod != RawULongInt(1) && mod != p_1 )
+			mod = base.PowerMod( s, *this );
+			if( mod == RawULongInt( 1 ) || mod == p_1 )
+				continue;
+			bool flag = false;
+			for( int i = 0; i < r - 1; i++ )
 			{
-				mod = UnsignedPowerMod( mod, mod, *this );
-				temp *= 2;
+				mod = ( mod * mod ) % *this;
+				if( mod == p_1 )
+				{
+					flag = true;
+					break;
+				}
 			}
-			if( mod != p_1 && temp.isEven() )
+			if( !flag )
 				return false;
 		}
 		return true;
@@ -382,14 +394,12 @@ protected:
 	{
 		if( b == 0 || a.isZero() )
 		{
-			c.n = 1;
-			c.m_val.assign( 1, 0 );
+			c = 0;
 			return;
 		}
 		if( b == 1 )
 		{
-			c.n = a.n;
-			c.m_val = a.m_val;
+			c = a;
 			return;
 		}
 		assert( b >= 0 && b < RADIX );
@@ -422,10 +432,10 @@ protected:
 		thread_local RawULongInt sum;
 		sum.m_val.reserve( a.n + b.n );
 		int ct = 0;
-		for( auto i : n_short->m_val )
+		for( int i = 0; i < n_short->n; i++ )
 		{
 			tmp = RawULongInt();
-			UnsignedMultiply( *n_long, i, tmp );
+			UnsignedMultiply( *n_long, n_short->m_val[i], tmp );
 			if( !tmp.isZero() )
 			{
 				tmp <<= ct;// *= RADIX
@@ -524,6 +534,7 @@ protected:
 		if( remain.n == 0 )
 			remain.n = 1;
 		quotient.n = quotient.count_n( a.n - b.n + 1 );
+		assert( quotient * b + remain == a );
 	}
 	static RawULongInt UnsignedPow( const RawULongInt& base, size_t exponent )
 	{
@@ -541,8 +552,12 @@ protected:
 		while( !exponent.isZero() )
 		{
 			if( exponent.isOdd() )
-				x = ( x * y ) % mod;
-			y = ( y * y ) % mod;
+			{
+				x *= y;
+				x %= mod;
+			}
+			y *= y;
+			y %= mod;
 			exponent /= 2;
 		}
 		return x;
