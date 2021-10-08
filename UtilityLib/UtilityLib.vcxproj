@@ -170,6 +170,8 @@
     <ClInclude Include="CommonDef.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="BlockList.h" />
+    <ClInclude Include="HillClimb.h" />
+    <ClInclude Include="SimulatedAnnealing.h" />
     <ClInclude Include="LongInt.h" />
     <ClInclude Include="VecUtil.h" />
     <ClInclude Include="Matrix.h" />

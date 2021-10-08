@@ -10,7 +10,8 @@ extern inline LL modulo( LL base, LL exponent, const LL mod );
 //calculates (a * b) % mod taking into account that a * b might overflow
 extern inline LL mulmod( LL a, LL b, const LL mod );
 //large prime check
-bool MillerRabin( const LL p, int numOftest, RNG& rng );
+template<typename Engine = Util::RNG>
+bool MillerRabin( const LL p, int numOftest, Engine& rng );
 //exact prime check
 bool isPrime( const LL p );
 LL GCD( LL a, LL b );
@@ -51,9 +52,41 @@ T FastExponentiation( const T& base, LL exponent, Multiply mul );//General Fast 
 template <typename T, typename Multiply, typename Modulo>
 T FastExponentiation( const T& base, LL exponent, const T& mod, Multiply mul, Modulo modulo );//General Fast Exponentiation with mod
 
+
 //
 //Body
 //
+
+template<typename Engine>
+bool MillerRabin( const LL p, int numOftest, Engine& rng )
+{
+	if( p < 2 )
+		return false;
+	if( p == 2 )
+		return true;
+	if( ( p & 1 ) == 0 )
+		return false;
+	std::uniform_int_distribution<LL> rand_LL( 1, p - 1 );
+	LL s = p - 1;
+	while( ( s & 1 ) == 0 )
+		s >>= 1;
+	while( numOftest-- )
+	{
+		//LL base = rand() % (p - 1) + 1;
+		LL base = rand_LL( rng );
+		LL temp = s;
+		LL mod = modulo( base, temp, p );
+		while( temp != p - 1 && mod != 1 && mod != p - 1 )
+		{
+			mod = mulmod( mod, mod, p );
+			temp <<= 1;
+		}
+		if( mod != p - 1 && ( temp & 1 ) == 0 )
+			return false;
+	}
+	return true;
+}
+
 template <typename Iter>
 void Normalize( Iter begin, Iter end, int norm )
 {
