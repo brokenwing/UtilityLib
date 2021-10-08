@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Header Files\LongInt">
+      <UniqueIdentifier>{68c2db40-60c7-4d0f-ac78-1af05b15f6f9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -42,9 +45,6 @@
     <ClInclude Include="VecUtil.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="LongInt.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="SimulatedAnnealing.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -52,7 +52,16 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ULongInt.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\LongInt</Filter>
+    </ClInclude>
+    <ClInclude Include="LongInt.h">
+      <Filter>Header Files\LongInt</Filter>
+    </ClInclude>
+    <ClInclude Include="RawLongInt.h">
+      <Filter>Header Files\LongInt</Filter>
+    </ClInclude>
+    <ClInclude Include="RawULongInt.h">
+      <Filter>Header Files\LongInt</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

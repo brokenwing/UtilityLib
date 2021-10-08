@@ -3,13 +3,6 @@
 
 using namespace Util;
 
-TEST( ULongInt, lt )
-{
-	ULongInt a( 1 );
-	ULongInt b( 2 );
-	EXPECT_TRUE( a < b );
-}
-
 TEST( LongInt, int_construct )
 {
 	auto out = "10 00000000";
@@ -428,7 +421,7 @@ TEST( LongInt, exponent_sign_4)
 TEST( ULongInt, rand)
 {
 	RNG rng( 0 );
-	LongInt v = LongInt::Rand( 3, rng );
+	LongInt v = ULongInt::Rand( 3, rng );
 	std::cout << v.ToString() << '\n';
 }
 TEST( LongInt, div_int_1)
