@@ -94,6 +94,34 @@ TEST( ULongInt, neq )
 	EXPECT_TRUE( !( a != b ) );
 	EXPECT_TRUE( a != c );
 }
+TEST( ULongInt, lt )
+{
+	ULongInt a( 3 );
+	ULongInt b( 4 );
+	EXPECT_TRUE( a < b );
+	EXPECT_FALSE( a < a );
+}
+TEST( ULongInt, le )
+{
+	ULongInt a( 3 );
+	ULongInt b( 4 );
+	EXPECT_TRUE( a <= b );
+	EXPECT_TRUE( a <= a );
+}
+TEST( ULongInt, gt )
+{
+	ULongInt a( 3 );
+	ULongInt b( 4 );
+	EXPECT_TRUE( b > a );
+	EXPECT_FALSE( a > a );
+}
+TEST( ULongInt, ge )
+{
+	ULongInt a( 3 );
+	ULongInt b( 4 );
+	EXPECT_TRUE( b >= a );
+	EXPECT_TRUE( a >= a );
+}
 TEST( ULongInt, exp )
 {
 	ULongInt a( 3 );
@@ -105,4 +133,46 @@ TEST( ULongInt, exp2 )
 	ULongInt a( 3 );
 	ULongInt c( 27 % 10 );
 	EXPECT_TRUE( a.PowerMod( 3, 10 ) == c );
+}
+
+TEST( ULongInt_MillerRabinPrimeTest, small )
+{
+	RNG rng( 0 );
+	EXPECT_FALSE( ULongInt( 1 ).MillerRabinPrimeTest( 5, rng ) );
+	EXPECT_FALSE( ULongInt( 4 ).MillerRabinPrimeTest( 5, rng ) );
+	EXPECT_FALSE( ULongInt( 6 ).MillerRabinPrimeTest( 5, rng ) );
+	EXPECT_TRUE( ULongInt( 2 ).MillerRabinPrimeTest( 5, rng ) );
+	EXPECT_TRUE( ULongInt( 3 ).MillerRabinPrimeTest( 5, rng ) );
+	EXPECT_TRUE( ULongInt( 5 ).MillerRabinPrimeTest( 5, rng ) );
+}
+TEST( ULongInt_MillerRabinPrimeTest, size_int )
+{
+	RNG rng( 0 );
+	EXPECT_FALSE( ULongInt( 100000 ).MillerRabinPrimeTest( 5, rng ) );
+	EXPECT_FALSE( ULongInt( 252601 ).MillerRabinPrimeTest( 5, rng ) );
+	EXPECT_TRUE( ULongInt( 101 ).MillerRabinPrimeTest( 5, rng ) );
+	EXPECT_TRUE( ULongInt( 524287 ).MillerRabinPrimeTest( 5, rng ) );
+}
+TEST( ULongInt_MillerRabinPrimeTest, large_yes_1 )
+{
+	RNG rng( 0 );
+	EXPECT_TRUE( ULongInt( "1 23456789 01234619" ).MillerRabinPrimeTest( 5, rng ) );
+}
+TEST( ULongInt_MillerRabinPrimeTest, large_no_1 )
+{
+	RNG rng( 0 );
+	EXPECT_FALSE( ULongInt( "100 123 234" ).MillerRabinPrimeTest( 5, rng ) );
+}
+TEST( ULongInt_MillerRabinPrimeTest, large_no_2 )
+{
+	RNG rng( 0 );
+	EXPECT_FALSE( ULongInt( "1 23456789 01234561" ).MillerRabinPrimeTest( 5, rng ) );
+}
+
+TEST( ULongInt, Fermat_little_theorem )
+{
+	ULongInt p( "123 45678901 23456209" );
+	ULongInt a( 101 );
+	ULongInt r = a.PowerMod( p - 1, p );
+	EXPECT_TRUE( r == 1 );
 }

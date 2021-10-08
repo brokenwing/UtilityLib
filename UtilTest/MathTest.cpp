@@ -28,7 +28,9 @@ TEST( Math, MillerRabin_basic )
 	EXPECT_FALSE( MillerRabin( -1, n, rng ) );
 	EXPECT_FALSE( MillerRabin( 0, n, rng ) );
 	EXPECT_FALSE( MillerRabin( 1, n, rng ) );
+	EXPECT_FALSE( MillerRabin( 4, n, rng ) );
 	EXPECT_TRUE( MillerRabin( 2, n, rng ) );
+	EXPECT_TRUE( MillerRabin( 3, n, rng ) );
 	rng = Util::RNG( 0 );
 	EXPECT_TRUE( MillerRabin( 101, n, rng ) );
 	rng = Util::RNG( 0 );

@@ -66,7 +66,7 @@ bool MillerRabin( const LL p, int numOftest, Engine& rng )
 		return true;
 	if( ( p & 1 ) == 0 )
 		return false;
-	std::uniform_int_distribution<LL> rand_LL( 1, p - 1 );
+	std::uniform_int_distribution<LL> rand_LL( 2, p - 1 );
 	LL s = p - 1;
 	while( ( s & 1 ) == 0 )
 		s >>= 1;

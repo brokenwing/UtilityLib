@@ -60,6 +60,7 @@ public:
 			const int pos = (int)s.rfind( delimiter, offset );
 			unsigned int v = 0;
 			sscanf_s( s.data() + ( pos == -1 ? first : pos ), "%u", &v );
+			assert( v < RADIX );
 			m_val.emplace_back( v % RADIX );
 			if( pos == -1 )
 				break;
@@ -225,42 +226,48 @@ public:
 		ret.n = ret.count_n( (int)bit );
 		return ret;
 	}
-	/*
-	bool MillerRabinPrimeTest( size_t numOftest, RNG& rng )
+	
+	template<typename Engine = Util::RNG>
+	bool MillerRabinPrimeTest( size_t numOftest, Engine& rng )const
 	{
-		if( this->operator<( _LongInt( 2 ) ) )
+		if( this->operator<( RawULongInt( 2 ) ) )
 			return false;
-		if( this->operator==( _LongInt( 2 ) ) )
+		if( this->operator==( RawULongInt( 2 ) ) )
 			return true;
 		if( this->isEven() )
 			return false;
-		auto randombase = [&] ( _LongInt& val )->void
+		
+		auto randombase = [&] ( RawULongInt& val )->void
 		{
+			assert( this->GetHigh( 1 ) > 0 );
 			val = Rand( this->n, rng );
-			val.m_val[this->n - 1] %= m_val[this->n - 1];
+			std::uniform_int_distribution<int>  r( 0, this->GetHigh( 1 ) - 1 );
+			val.m_val[this->n - 1] = r( rng );
 			val.n = val.count_n( this->n - 1 );
+			if( val <= RawULongInt( 1 ) )
+				val = 2;
 		};
 
-		_LongInt s = *this - _LongInt( 1 );
-		while( s.isEven() )
+		RawULongInt s = *this - RawULongInt( 1 );
+		while( s.isEven() && !s.isZero() )
 			s /= 2;
-		_LongInt base, temp, mod;
+		RawULongInt base, temp, mod;
+		const RawULongInt p_1 = *this - 1;
 		while( numOftest-- > 0 )
 		{
 			randombase( base );
 			temp = s;
-			//UnsignedModPow(base,)
-			mod = modulo( base, temp, p );
-			while( temp != p - 1 && mod != 1 && mod != p - 1 )
+			mod = UnsignedPowerMod( base, temp, *this );
+			while( temp != p_1 && mod != RawULongInt(1) && mod != p_1 )
 			{
-				mod = mulmod( mod, mod, p );
-				temp <<= 1;
+				mod = UnsignedPowerMod( mod, mod, *this );
+				temp *= 2;
 			}
-			if( mod != p - 1 && ( temp & 1 ) == 0 )
+			if( mod != p_1 && temp.isEven() )
 				return false;
 		}
 		return true;
-	}*/
+	}
 
 protected:
 	void swap( RawULongInt& other )
@@ -445,8 +452,7 @@ protected:
 		else if( a.n == b.n + 1 )
 		{
 			ULL x = (ULL)a.GetHigh() * RADIX + a.GetHigh( 2 );
-			assert( x / b.GetHigh() < RADIX );
-			r = (unsigned int)( x / b.GetHigh() );
+			r = (unsigned int)std::min( (ULL)r, x / b.GetHigh() );
 			l = (unsigned int)( x / ( b.GetHigh() + 1 ) );
 		}
 		assert( l <= r );
@@ -523,11 +529,9 @@ protected:
 	{
 		if( exponent == 0 )
 			return RawULongInt( 1 );
-		thread_local RawULongInt tmp;
 		return Math::FastExponentiation<RawULongInt>( base, exponent, [] ( const RawULongInt& l, const RawULongInt& r )->RawULongInt
 		{
-			UnsignedMultiply( l, r, tmp );
-			return tmp;
+			return l * r;
 		} );
 	}
 	static RawULongInt UnsignedPowerMod( const RawULongInt& base, RawULongInt exponent, const RawULongInt& mod )
