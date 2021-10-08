@@ -51,6 +51,9 @@
     <ClInclude Include="HillClimb.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ULongInt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="UtilityLib.cpp">

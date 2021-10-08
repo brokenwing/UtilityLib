@@ -418,7 +418,7 @@ TEST( LongInt, exponent_sign_4)
 	auto s1 = ( a ^ 0 ).ToString( ' ' );
 	EXPECT_EQ( s1, "1" );
 }
-TEST( _LongInt, rand)
+TEST( ULongInt, rand)
 {
 	RNG rng( 0 );
 	LongInt v = LongInt::Rand( 3, rng );
