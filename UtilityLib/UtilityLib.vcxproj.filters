@@ -63,6 +63,9 @@
     <ClInclude Include="RawULongInt.h">
       <Filter>Header Files\LongInt</Filter>
     </ClInclude>
+    <ClInclude Include="RSA.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="UtilityLib.cpp">
