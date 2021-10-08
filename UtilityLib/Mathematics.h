@@ -154,7 +154,7 @@ T FastExponentiation( const T& base, LL exponent, Multiply mul )
 	return x;
 }
 template <typename T, typename Multiply, typename Modulo>
-T FastExponentiation( const T& base, T exponent, const T& mod, Multiply mul, Modulo modulo )//General Fast Exponentiation with mod
+T FastExponentiation( const T& base, size_t exponent, const T& mod, Multiply mul, Modulo modulo )//General Fast Exponentiation with mod
 {
 	T x = 1;
 	T y = modulo( base, mod );

@@ -88,7 +88,8 @@ public:
 	{
 		return !isEven();
 	}
-	static _LongInt Rand( size_t bit, RNG& rng )
+	template<typename Engine = Util::RNG>
+	static _LongInt Rand( size_t bit, Engine& rng )
 	{
 		std::uniform_int_distribution<int>  r( 0, RADIX - 1 );
 		_LongInt ret;
@@ -98,7 +99,7 @@ public:
 		ret.n = ret.count_n( (int)bit );
 		return ret;
 	}
-
+	/*
 	bool MillerRabinPrimeTest( size_t numOftest, RNG& rng )
 	{
 		if( this->operator<( _LongInt( 2 ) ) )
@@ -133,7 +134,7 @@ public:
 				return false;
 		}
 		return true;
-	}
+	}*/
 
 protected:
 	void swap( _LongInt& other )
@@ -461,10 +462,10 @@ protected:
 			return tmp;
 		} );
 	}
-	static _LongInt UnsignedModPow( const _LongInt& base, _LongInt exponent, const _LongInt& mod )
+	static _LongInt UnsignedModPow( const _LongInt& base, size_t exponent, const _LongInt& mod )
 	{
-		T x = 1;
-		T y = modulo( base, mod );
+		/*_LongInt x( 1 );
+		_LongInt y = modulo( base, mod );
 		while( exponent > 0 )
 		{
 			if( ( exponent & 1 ) == 1 )
@@ -472,8 +473,8 @@ protected:
 			y = modulo( mul( y, y ), mod );
 			exponent >>= 1;
 		}
-		return modulo( x, mod );
-		if( exponent.isZero() )
+		return modulo( x, mod );*/
+		if( exponent==0 )
 			return _LongInt( 1 );
 		thread_local _LongInt tmp, dummy;
 		return Math::FastExponentiation<_LongInt>( base, exponent, mod,
