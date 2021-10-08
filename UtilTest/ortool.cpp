@@ -1,7 +1,128 @@
 #include "pch.h"
 #include "SimulatedAnnealing.h"
+#include "HillClimb.h"
 
 using namespace Util::ORtool;
+
+namespace
+{
+class HC_Sample :public HillClimb<std::pair<int, int>>
+{
+private:
+	SolutionType backup;
+	
+	static constexpr int N = 4;
+	int MAP[4][4] = { {1,2,3,4},
+					  {12,13,14,5},
+					  {11,16,15,6},
+					  {10,9,8,7} };
+
+public:
+	SolutionType init_pos;
+
+public:
+	HC_Sample()
+	{}
+	void InitializeSolution( SolutionType& sol )override
+	{
+		sol = init_pos;
+	}
+	void Neighbor( SolutionType& sol ) override
+	{
+		backup = sol;
+		constexpr int N_DIR = 4;
+		int dx[N] = { 1,-1,0,0 };
+		int dy[N] = { 0,0,1,-1 };
+		int w[N] = { 0 };
+		FOR( i, 0, N_DIR )
+		{
+			auto tmp = sol;
+			tmp.first += dx[i];
+			tmp.second += dy[i];
+			if( tmp.first >= 0 && tmp.second >= 0 && tmp.first < N && tmp.second < N )
+			{
+				w[i] = 1;
+			}
+		}
+		std::discrete_distribution<int> r( w, w + N );
+		const int idx = r( GetRNG() );
+		sol.first += dx[idx];
+		sol.second += dy[idx];
+	}
+	void Rollback( SolutionType& sol )override
+	{
+		sol = backup;
+	}
+	double CalcScore( const SolutionType& sol )const override
+	{
+		return MAP[sol.first][sol.second];
+	}
+};
+}
+
+TEST( HC_Sample, opt_at_first )
+{
+	HC_Sample hc;
+	hc.init_pos = { 2,1 };
+	hc.Config( 1, 10 );
+	ASSERT_TRUE( hc.Execute( 0 ) );
+	EXPECT_DOUBLE_EQ( hc.GetScore(), 16 );
+	EXPECT_EQ( hc.GetSolution(), std::make_pair( 2, 1 ) );
+	EXPECT_TRUE( hc.GetLogList().empty() );
+}
+TEST( HC_Sample, minimize_test )
+{
+	HC_Sample hc;
+	hc.isMaximize = false;
+	hc.init_pos = { 2,1 };
+	hc.Config( 1, 100 );
+	ASSERT_TRUE( hc.Execute( 0 ) );
+	EXPECT_DOUBLE_EQ( hc.GetScore(), 1 );
+	EXPECT_EQ( hc.GetSolution(), std::make_pair( 0, 0 ) );
+}
+TEST( HC_Sample, opt_at_first_log )
+{
+	HC_Sample hc;
+	hc.init_pos = { 2,1 };
+	hc.Config( 1, 10, true, (int)HC_Sample::tState::kAcceptSolution );
+	ASSERT_TRUE( hc.Execute( 0 ) );
+	EXPECT_TRUE( hc.GetLogList().empty() );
+}
+TEST( HC_Sample, worst_to_opt )
+{
+	HC_Sample hc;
+	hc.init_pos = { 0,0 };
+	hc.Config( 1, 100, true );
+	ASSERT_TRUE( hc.Execute( 0 ) );
+	EXPECT_DOUBLE_EQ( hc.GetScore(), 16 );
+	EXPECT_EQ( hc.GetSolution(), std::make_pair( 2, 1 ) );
+	EXPECT_TRUE( hc.GetLogList().size() > 3 );
+	auto q = hc.GetLogList();
+	double prev = 0;
+	for( auto& e : q )
+		if( e.accept )
+		{
+			EXPECT_GT( e.score, prev );
+			prev = e.score;
+			std::cout << e.score << ' ';
+		}
+	std::cout << '\n';
+}
+TEST( HC_Sample, twice_run )
+{
+	HC_Sample hc;
+	hc.init_pos = { 0,0 };
+	hc.Config( 1, 100, true );
+	ASSERT_TRUE( hc.Execute( 0 ) );
+	EXPECT_DOUBLE_EQ( hc.GetScore(), 16 );
+	EXPECT_EQ( hc.GetSolution(), std::make_pair( 2, 1 ) );
+	EXPECT_TRUE( hc.GetLogList().size() > 3 );
+
+	ASSERT_TRUE( hc.Execute( 0 ) );
+	EXPECT_DOUBLE_EQ( hc.GetScore(), 16 );
+	EXPECT_EQ( hc.GetSolution(), std::make_pair( 2, 1 ) );
+	EXPECT_TRUE( hc.GetLogList().size() > 3 );
+}
 
 namespace
 {
@@ -200,6 +321,24 @@ public:
 };
 }
 
+TEST( SA_TSP_sample, minimize_test )
+{
+	int n = 10;
+	SA_TSP_sample sa( n );
+	sa.isMaximize = false;
+	sa.Config( 1, 100, true, n );
+	sa.ConfigLog( 10 );
+	sa.Execute( 0 );
+	
+	auto q = sa.GetLogList();
+	EXPECT_GT( q.size(), 5 );
+	double prev = q.front().best_score;
+	for( auto& e : q )
+	{
+		EXPECT_LE( e.best_score, prev );
+		prev = e.best_score;
+	}
+}
 TEST( SA_TSP_sample, sa_basic )
 {
 	int n = 50;
@@ -207,7 +346,7 @@ TEST( SA_TSP_sample, sa_basic )
 	sa.Config( 1, 10000, true, n );
 	sa.ConfigLog( 10 );
 	//sa.SetTmaxTmin( 0, 0.1, true );
-	sa.Execute( 0 );
+	ASSERT_TRUE( sa.Execute( 0 ) );
 
 	auto q = sa.GetLogList();
 	EXPECT_GT( q.size(), 5 );
@@ -228,7 +367,7 @@ TEST( SA_TSP_sample, sa_basic_resample )
 	sa.ConfigLog( 10 );
 	//sa.SetTmaxTmin( 0, 0.1, true );
 	sa.ConfigResample( 10 );
-	sa.Execute( 0 );
+	ASSERT_TRUE( sa.Execute( 0 ) );
 
 	auto q = sa.GetLogList();
 	EXPECT_GT( q.size(), 5 );

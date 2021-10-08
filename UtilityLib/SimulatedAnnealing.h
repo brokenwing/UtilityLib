@@ -39,6 +39,7 @@ public:
 		double progress = 0;
 		double temperature = 0;
 	};
+	bool isMaximize = true;
 
 private:
 	Timer global_time;
@@ -99,10 +100,10 @@ public:
 	bool Execute( unsigned int seed = 0 );
 
 protected:
-	virtual void InitializeSolution( Solution& sol ) = 0;
-	virtual void Neighbor( Solution& sol ) = 0;
-	virtual void Rollback( Solution& sol ) = 0;
-	virtual double CalcScore( const Solution& sol )const = 0;
+	virtual void InitializeSolution( SolutionType& sol ) = 0;
+	virtual void Neighbor( SolutionType& sol ) = 0;
+	virtual void Rollback( SolutionType& sol ) = 0;
+	virtual double CalcScore( const SolutionType& sol )const = 0;
 	virtual void Hook( const tState state )	{}
 	
 	void DefaultHook( const tState state )
@@ -112,6 +113,7 @@ protected:
 	}
 	void UpdateLog( const tState state );
 	double GetNextScore()const noexcept	{		return m_nxt_score;	}
+	bool isBetter( const double nxt_score, const double old_score )const noexcept	{		return isMaximize ? GT( nxt_score, old_score ) : LT( nxt_score, old_score );	}
 
 	void Initialize();
 	bool Accept( const double old_score, const double new_score, const double temperature )const;
@@ -202,7 +204,7 @@ inline bool SimulatedAnnealing<Solution, Engine>::Execute( unsigned int seed )
 		if( Accept( m_score, m_nxt_score, m_cur_T ) )
 		{
 			//update opt
-			if( GT( m_nxt_score, m_opt_score ) )
+			if( isBetter( m_nxt_score, m_opt_score ) )
 			{
 				opt_solution = m_current;
 				m_opt_score = m_nxt_score;
@@ -275,7 +277,7 @@ bool SimulatedAnnealing<Solution, Engine>::Accept( const double old_score, const
 
 	double diff = new_score - old_score;
 	assert( !isnan( diff ) );
-	if( GT( diff, 0 ) )
+	if( isBetter( diff, 0 ) )
 		return true;
 
 	assert( GE( temperature, 0 ) );
