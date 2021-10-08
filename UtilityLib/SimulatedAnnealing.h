@@ -6,6 +6,9 @@
 
 namespace Util::ORtool
 {
+template <typename Solution, typename Engine>
+class HillClimb;
+
 //maxmize score
 template <typename Solution, typename Engine = Util::RNG>
 class SimulatedAnnealing
@@ -79,6 +82,11 @@ protected:
 	mutable Engine rng;
 
 public:
+	friend class HillClimb<Solution, Engine>;
+
+	decltype( m_max_iteration ) GetMaxIteration()const noexcept	{		return m_max_iteration;	}
+	double GetTimeLimit()const noexcept	{		return m_timelimit_s;	}
+
 	//Record information after each state (or finish) iff iteration changes >= m_max_iteration/max_log_size
 	void ConfigLog( std::int64_t max_log_size = 0, int flag = (int)tState::kAcceptSolution | (int)tState::kFinish ) noexcept;
 	//ReCalc max/min Temperature during SA for at most n times
@@ -88,12 +96,8 @@ public:
 	void SetTemperatureCalcType( const tCoolDownType val )noexcept	{		m_temperature_calc_type = val;	}
 
 	std::pair<double, double> GetInitialTemperature()const noexcept	{		return std::make_pair( T_min, T_max );	}
-	decltype( m_iteration )GetIteration()const noexcept	{		return m_iteration;	}
-	double GetProgress()const noexcept	{		return m_progress;	}
 	const Solution& GetSolution()const noexcept	{		return opt_solution;	}
-	const Solution& GetCurrSolution()const noexcept	{		return m_current;	}
 	double GetScore()const noexcept	{		return m_opt_score;	}
-	double GetCurrScore()const noexcept	{		return m_score;	}
 	decltype( rng )& GetRNG()const noexcept	{		return rng;	}
 	const decltype( m_logList )& GetLogList()const noexcept	{		return m_logList;	}
 
@@ -106,6 +110,11 @@ protected:
 	virtual double CalcScore( const SolutionType& sol )const = 0;
 	virtual void Hook( const tState state )	{}
 	
+	decltype( m_iteration )GetIteration()const noexcept	{		return m_iteration;	}
+	double GetProgress()const noexcept	{		return m_progress;	}
+	const Solution& GetCurrSolution()const noexcept	{		return m_current;	}
+	double GetCurrScore()const noexcept	{		return m_score;	}
+
 	void DefaultHook( const tState state )
 	{
 		UpdateLog( state );

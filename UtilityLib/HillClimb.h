@@ -6,6 +6,9 @@
 
 namespace Util::ORtool
 {
+template <typename Solution, typename Engine>
+class SimulatedAnnealing;
+
 //maxmize score (default)
 template <typename Solution, typename Engine = Util::RNG>
 class HillClimb
@@ -53,8 +56,11 @@ protected:
 	mutable Engine rng;
 
 public:
-	HillClimb()
-	{}
+	friend class SimulatedAnnealing<Solution, Engine>;
+	
+	decltype( m_max_iteration ) GetMaxIteration()const noexcept	{		return m_max_iteration;	}
+	double GetTimeLimit()const noexcept	{		return m_timelimit_s;	}
+
 	void Config( double timelimit_s, std::int64_t max_iteration, bool collect_log = false, int collect_flag = (int)tState::kAcceptSolution | (int)tState::kRollback )noexcept
 	{
 		m_timelimit_s = timelimit_s;
@@ -62,8 +68,6 @@ public:
 		m_is_collect = collect_log;
 		m_collect_flag = collect_flag;
 	}
-	decltype( m_iteration )GetIteration()const noexcept	{		return m_iteration;	}
-	double GetProgress()const	{		return std::max( global_time.GetTime() / m_timelimit_s, m_iteration / static_cast<double>( m_max_iteration ) );	}
 	const Solution& GetSolution()const noexcept	{		return m_sol;	}
 	double GetScore()const noexcept	{		return m_best_score;	}
 	decltype( rng )& GetRNG()const noexcept	{		return rng;	}
@@ -78,6 +82,8 @@ protected:
 	virtual double CalcScore( const SolutionType& sol )const = 0;
 	virtual void Hook( const tState state )	{}
 	
+	decltype( m_iteration )GetIteration()const noexcept	{		return m_iteration;	}
+	double GetProgress()const	{		return std::max( global_time.GetTime() / m_timelimit_s, m_iteration / static_cast<double>( m_max_iteration ) );	}
 	void DefaultHook( const tState state )
 	{
 		UpdateLog( state );
@@ -85,18 +91,7 @@ protected:
 	}
 	double GetNextScore()const noexcept	{		return m_nxt_score;	}
 	bool Terminate()const	{		return global_time.GetTime() > m_timelimit_s || m_iteration >= m_max_iteration;	}
-	void UpdateLog( const tState state )
-	{
-		if( m_is_collect && ( m_collect_flag & (int)state ) != 0 )
-		{
-			auto& e = m_logList.emplace_back();
-			e.iteration = GetIteration();
-			e.time_s = global_time.GetTime();
-			e.progress = GetProgress();
-			e.accept = !( state == tState::kRollback );
-			e.score = ( state == tState::kRollback || state == tState::kAcceptSolution ) ? GetNextScore() : GetScore();
-		}
-	}
+	void UpdateLog( const tState state );
 };
 
 template<typename Solution, typename Engine>
@@ -139,4 +134,52 @@ inline bool HillClimb<Solution, Engine>::Execute( unsigned int seed )
 
 	return true;
 }
+template<typename Solution, typename Engine>
+inline void HillClimb<Solution, Engine>::UpdateLog( const tState state )
+{
+	if( m_is_collect && ( m_collect_flag & (int)state ) != 0 )
+	{
+		auto& e = m_logList.emplace_back();
+		e.iteration = GetIteration();
+		e.time_s = global_time.GetTime();
+		e.progress = GetProgress();
+		e.accept = !( state == tState::kRollback );
+		e.score = ( state == tState::kRollback || state == tState::kAcceptSolution ) ? GetNextScore() : GetScore();
+	}
+}
+
+//Transform from SA to HC
+template<typename SimulatedAnnealingEntity>
+class HillClimbFromSimulatedAnnealing :public HillClimb<typename SimulatedAnnealingEntity::SolutionType, typename SimulatedAnnealingEntity::RNGType>
+{
+private:
+	static_assert( std::is_base_of_v<SimulatedAnnealing<SimulatedAnnealingEntity::SolutionType,SimulatedAnnealingEntity::RNGType>, SimulatedAnnealingEntity>,
+				   "SimulatedAnnealingEntity must inherit from SimulatedAnnealing" );
+
+	SimulatedAnnealingEntity& me;
+public:
+	HillClimbFromSimulatedAnnealing( SimulatedAnnealingEntity& _me ) :me( _me )
+	{
+		this->isMaximize = _me.isMaximize;
+	}
+
+protected:
+	void InitializeSolution( typename SimulatedAnnealingEntity::SolutionType& sol )override
+	{
+		me.InitializeSolution( sol );
+	}
+	void Neighbor( typename SimulatedAnnealingEntity::SolutionType& sol ) override
+	{
+		me.Neighbor( sol );
+	}
+	void Rollback( typename SimulatedAnnealingEntity::SolutionType& sol ) override
+	{
+		me.Rollback( sol );
+	}
+	double CalcScore( const typename SimulatedAnnealingEntity::SolutionType& sol )const override
+	{
+		return me.CalcScore( sol );
+	}
+};
+
 }
