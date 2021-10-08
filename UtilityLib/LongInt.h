@@ -3,8 +3,14 @@
 
 namespace Util
 {
+//RADIX undefined LongInt
+template<unsigned int _RADIX>
+class RawLongInt;
+
 //RADIX = 10^8
-class LongInt :public ULongInt<100000000>
+//class LongInt;
+
+class LongInt :public RawULongInt<100000000>
 {
 protected:
 	bool sign = true;//positive or negative
@@ -19,15 +25,15 @@ public:
 
 	~LongInt()
 	{}
-	LongInt() :ULongInt()
+	LongInt() :RawULongInt()
 	{}
-	LongInt( const ULongInt& val ) :ULongInt( val )
+	LongInt( const RawULongInt& val ) :RawULongInt( val )
 	{}
-	LongInt( int val ) :ULongInt( abs(val) )
+	LongInt( int val ) :RawULongInt( abs(val) )
 	{
 		sign = val > 0;
 	}
-	LongInt( const LFA::string& s, char delimiter = ' ' ) :ULongInt( s, delimiter )
+	LongInt( const LFA::string& s, char delimiter = ' ' ) :RawULongInt( s, delimiter )
 	{
 		sign = s.empty() || s[0] != '-';
 	}
@@ -49,17 +55,18 @@ public:
 		return ret;
 	}
 
+	bool isPositive()const noexcept	{		return sign;	}
 	bool operator==( const LongInt& other )const
 	{
 		if( this->isZero() && other.isZero() )
 			return true;
-		return sign == other.sign && ULongInt::operator==( other );
+		return sign == other.sign && RawULongInt::operator==( other );
 	}
 	bool operator!=( const LongInt& other )const
 	{
 		if( this->isZero() && other.isZero() )
 			return false;
-		return sign != other.sign || ULongInt::operator!=( other );
+		return sign != other.sign || RawULongInt::operator!=( other );
 	}
 	bool operator<( const LongInt& other )const
 	{
@@ -68,9 +75,9 @@ public:
 		if( sign != other.sign )
 			return sign < other.sign;
 		else if( sign && other.sign )
-			return ULongInt::operator<( other );
+			return RawULongInt::operator<( other );
 		else
-			return ULongInt::operator>( other );
+			return RawULongInt::operator>( other );
 	}
 	bool operator>( const LongInt& other )const
 	{
@@ -79,9 +86,9 @@ public:
 		if( sign != other.sign )
 			return sign > other.sign;
 		else if( sign && other.sign )
-			return ULongInt::operator>( other );
+			return RawULongInt::operator>( other );
 		else
-			return ULongInt::operator<( other );
+			return RawULongInt::operator<( other );
 	}
 	bool operator<=( const LongInt& other )const
 	{
@@ -252,7 +259,7 @@ protected:
 		else
 		{
 			
-			const bool ge = a.ULongInt::operator>=( b );
+			const bool ge = a.RawULongInt::operator>=( b );
 			if( ge )
 				UnsignedSub( a, b, c );
 			else
@@ -268,12 +275,12 @@ protected:
 };
 
 //RADIX = 1 << 30
-class LongBinary :private ULongInt<1 << 30>
+class LongBinary :private RawULongInt<1 << 30>
 {
 public:
 	~LongBinary()
 	{}
-	LongBinary() :ULongInt()
+	LongBinary() :RawULongInt()
 	{}
 };
 }

@@ -3,6 +3,13 @@
 
 using namespace Util;
 
+TEST( ULongInt, lt )
+{
+	ULongInt a( 1 );
+	ULongInt b( 2 );
+	EXPECT_TRUE( a < b );
+}
+
 TEST( LongInt, int_construct )
 {
 	auto out = "10 00000000";

@@ -5,9 +5,14 @@
 
 namespace Util
 {
-//Internal
+//RADIX undefined ULongInt
 template<unsigned int _RADIX>
-class ULongInt
+class RawULongInt;
+//Each slot has 8 digit
+class ULongInt;
+
+template<unsigned int _RADIX>
+class RawULongInt
 {
 public:
 	static constexpr unsigned int RADIX = _RADIX;
@@ -19,11 +24,11 @@ protected:
 	LFA::vector<unsigned int> m_val;
 
 public:
-	ULongInt()
+	RawULongInt()
 	{
 		m_val.resize( 1, 0 );
 	}
-	ULongInt( unsigned int val )
+	RawULongInt( unsigned int val )
 	{
 		assert( (ULL)abs( val ) < (ULL)RADIX * RADIX );
 		if( val < RADIX )
@@ -40,7 +45,7 @@ public:
 			val /= RADIX;
 		}
 	}
-	ULongInt( const LFA::string& s, char delimiter = ' ' )
+	RawULongInt( const LFA::string& s, char delimiter = ' ' )
 	{
 		if( s.empty() )
 		{
@@ -65,7 +70,7 @@ public:
 			offset = pos - 1;
 		}
 	}
-	~ULongInt()
+	~RawULongInt()
 	{}
 	unsigned int GetHigh( int nth = 1 )const
 	{
@@ -85,11 +90,47 @@ public:
 	{
 		return !isEven();
 	}
+
+	bool operator<( const RawULongInt& other )const
+	{
+		if( n != other.n )
+			return n < other.n;
+		else
+		{
+			return LT( this->m_val.rbegin() + ( m_val.size() - n ), other.m_val.rbegin() + ( other.m_val.size() - n ), n );
+		}
+	}
+	bool operator>( const RawULongInt& other )const
+	{
+		if( n != other.n )
+			return n > other.n;
+		else
+		{
+			return GT( this->m_val.rbegin() + ( m_val.size() - n ), other.m_val.rbegin() + ( other.m_val.size() - n ), n );
+		}
+	}
+	bool operator<=( const RawULongInt& other )const
+	{
+		return !( *this > other );
+	}
+	bool operator>=( const RawULongInt& other )const
+	{
+		return !( *this < other );
+	}
+	bool operator==( const RawULongInt& other )const
+	{
+		return n == other.n && EQ( this->m_val.rbegin() + ( m_val.size() - n ), other.m_val.rbegin() + ( other.m_val.size() - n ), n );
+	}
+	bool operator!=( const RawULongInt& other )const
+	{
+		return !( RawULongInt::operator== ( other ) );
+	}
+
 	template<typename Engine = Util::RNG>
-	static ULongInt Rand( size_t bit, Engine& rng )
+	static RawULongInt Rand( size_t bit, Engine& rng )
 	{
 		std::uniform_int_distribution<int>  r( 0, RADIX - 1 );
-		ULongInt ret;
+		RawULongInt ret;
 		ret.m_val.resize( bit, 0 );
 		for( auto& e : ret.m_val )
 			e = r( rng );
@@ -134,7 +175,7 @@ public:
 	}*/
 
 protected:
-	void swap( ULongInt& other )
+	void swap( RawULongInt& other )
 	{
 		m_val.swap( other.m_val );
 		std::swap( n, other.n );
@@ -159,44 +200,9 @@ protected:
 	{
 		return n == 1 && m_val[0] == 0;
 	}
-	//ignore sign
-
-	bool operator<( const ULongInt& other )const
-	{
-		if( n != other.n )
-			return n < other.n;
-		else
-		{
-			return LT( this->m_val.rbegin() + ( m_val.size() - n ), other.m_val.rbegin() + ( other.m_val.size() - n ), n );
-		}
-	}
-	bool operator>( const ULongInt& other )const
-	{
-		if( n != other.n )
-			return n > other.n;
-		else
-		{
-			return GT( this->m_val.rbegin() + ( m_val.size() - n ), other.m_val.rbegin() + ( other.m_val.size() - n ), n );
-		}
-	}
-	bool operator<=( const ULongInt& other )const
-	{
-		return !( *this > other );
-	}
-	bool operator>=( const ULongInt& other )const
-	{
-		return !( *this < other );
-	}
-	bool operator==( const ULongInt& other )const
-	{
-		return n == other.n && EQ( this->m_val.rbegin() + ( m_val.size() - n ), other.m_val.rbegin() + ( other.m_val.size() - n ), n );
-	}
-	bool operator!=( const ULongInt& other )const
-	{
-		return !( ULongInt::operator== ( other ) );
-	}
+	
 	// *= RADIX^bit
-	ULongInt& operator<<=( int bit )
+	RawULongInt& operator<<=( int bit )
 	{
 		if( bit == 1 )
 		{
@@ -213,10 +219,10 @@ protected:
 		return *this;
 	}
 
-	static void UnsignedPlus( const ULongInt& a, const ULongInt& b, ULongInt& c )
+	static void UnsignedPlus( const RawULongInt& a, const RawULongInt& b, RawULongInt& c )
 	{
-		const ULongInt* n_long = ( a.n > b.n ) ? &a : &b;
-		const ULongInt* n_short = ( a.n > b.n ) ? &b : &a;
+		const RawULongInt* n_long = ( a.n > b.n ) ? &a : &b;
+		const RawULongInt* n_short = ( a.n > b.n ) ? &b : &a;
 		c.m_val.assign( (size_t)n_long->n + 1, 0 );
 		c.n = n_long->n;
 
@@ -244,12 +250,12 @@ protected:
 		assert( c.check() );
 	}
 
-	static void UnsignedSub( const ULongInt& a, const ULongInt& b, ULongInt& c )
+	static void UnsignedSub( const RawULongInt& a, const RawULongInt& b, RawULongInt& c )
 	{
 		assert( a.n >= b.n );
 		assert( a >= b );
-		const ULongInt* n_long = &a;
-		const ULongInt* n_short = &b;
+		const RawULongInt* n_long = &a;
+		const RawULongInt* n_short = &b;
 		c.m_val.assign( n_long->n, 0 );
 		c.n = n_long->n;
 
@@ -277,7 +283,7 @@ protected:
 		assert( c.check() );
 	}
 
-	static void UnsignedMultiply( const ULongInt& a, const unsigned int b, ULongInt& c )
+	static void UnsignedMultiply( const RawULongInt& a, const unsigned int b, RawULongInt& c )
 	{
 		if( b == 0 || a.isZero() )
 		{
@@ -311,19 +317,19 @@ protected:
 		}
 		assert( c.check() );
 	}
-	static void UnsignedMultiply( const ULongInt& a, const ULongInt& b, ULongInt& c )
+	static void UnsignedMultiply( const RawULongInt& a, const RawULongInt& b, RawULongInt& c )
 	{
-		const ULongInt* n_long = ( a.n > b.n ) ? &a : &b;
-		const ULongInt* n_short = ( a.n > b.n ) ? &b : &a;
-		c = ULongInt( 0 );
-		thread_local ULongInt tmp;
+		const RawULongInt* n_long = ( a.n > b.n ) ? &a : &b;
+		const RawULongInt* n_short = ( a.n > b.n ) ? &b : &a;
+		c = RawULongInt( 0 );
+		thread_local RawULongInt tmp;
 		tmp.m_val.reserve( a.n + b.n );
-		thread_local ULongInt sum;
+		thread_local RawULongInt sum;
 		sum.m_val.reserve( a.n + b.n );
 		int ct = 0;
 		for( auto i : n_short->m_val )
 		{
-			tmp = ULongInt();
+			tmp = RawULongInt();
 			UnsignedMultiply( *n_long, i, tmp );
 			if( !tmp.isZero() )
 			{
@@ -336,7 +342,7 @@ protected:
 		assert( c.check() );
 	}
 
-	static unsigned int UnsignedDivideShort( const ULongInt& a, const ULongInt& b )
+	static unsigned int UnsignedDivideShort( const RawULongInt& a, const RawULongInt& b )
 	{
 		assert( a.n == b.n || a.n == b.n + 1 );
 		if( a.operator<( b ) )
@@ -356,7 +362,7 @@ protected:
 			l = (unsigned int)( x / ( b.GetHigh() + 1 ) );
 		}
 		assert( l <= r );
-		thread_local ULongInt tmp;
+		thread_local RawULongInt tmp;
 		while( l < r )
 		{
 			auto mid = ( l + r + 1 ) >> 1;
@@ -370,12 +376,12 @@ protected:
 		}
 		return l;
 	}
-	static void UnsignedDivide( const ULongInt& a, const unsigned int b, ULongInt& quotient, unsigned int& remain )
+	static void UnsignedDivide( const RawULongInt& a, const unsigned int b, RawULongInt& quotient, unsigned int& remain )
 	{
-		assert( a >= ULongInt( b ) );
+		assert( a >= RawULongInt( b ) );
 		assert( b != 0 );
 		assert( b < RADIX );
-		if( a.operator<( ULongInt( b ) ) )
+		if( a.operator<( RawULongInt( b ) ) )
 		{
 			assert( a.n == 1 );
 			quotient = 0;
@@ -393,7 +399,7 @@ protected:
 		}
 		quotient.n = quotient.count_n( a.n );
 	}
-	static void UnsignedDivide( const ULongInt& a, const ULongInt& b, ULongInt& quotient, ULongInt& remain )
+	static void UnsignedDivide( const RawULongInt& a, const RawULongInt& b, RawULongInt& quotient, RawULongInt& remain )
 	{
 		assert( !b.isZero() );
 		if( a.operator<( b ) )
@@ -406,7 +412,7 @@ protected:
 		remain.m_val.reserve( a.n );
 		remain.m_val.clear();
 		remain.n = 0;
-		thread_local ULongInt v_mul, v_sub;
+		thread_local RawULongInt v_mul, v_sub;
 		for( int pos = a.n - 1; pos >= 0; --pos )
 		{
 			remain.m_val.insert( remain.m_val.begin(), a.m_val[pos] );
@@ -425,18 +431,18 @@ protected:
 			remain.n = 1;
 		quotient.n = quotient.count_n( a.n - b.n + 1 );
 	}
-	static ULongInt UnsignedPow( const ULongInt& base, size_t exponent )
+	static RawULongInt UnsignedPow( const RawULongInt& base, size_t exponent )
 	{
 		if( exponent == 0 )
-			return ULongInt( 1 );
-		thread_local ULongInt tmp;
-		return Math::FastExponentiation<ULongInt>( base, exponent, [] ( const ULongInt& l, const ULongInt& r )->ULongInt
+			return RawULongInt( 1 );
+		thread_local RawULongInt tmp;
+		return Math::FastExponentiation<RawULongInt>( base, exponent, [] ( const RawULongInt& l, const RawULongInt& r )->RawULongInt
 		{
 			UnsignedMultiply( l, r, tmp );
 			return tmp;
 		} );
 	}
-	static ULongInt UnsignedModPow( const ULongInt& base, size_t exponent, const ULongInt& mod )
+	static RawULongInt UnsignedModPow( const RawULongInt& base, size_t exponent, const RawULongInt& mod )
 	{
 		/*_LongInt x( 1 );
 		_LongInt y = modulo( base, mod );
@@ -449,19 +455,47 @@ protected:
 		}
 		return modulo( x, mod );*/
 		if( exponent == 0 )
-			return ULongInt( 1 );
-		thread_local ULongInt tmp, dummy;
-		return Math::FastExponentiation<ULongInt>( base, exponent, mod,
-												   [] ( const ULongInt& a, const ULongInt& b )->ULongInt
+			return RawULongInt( 1 );
+		thread_local RawULongInt tmp, dummy;
+		return Math::FastExponentiation<RawULongInt>( base, exponent, mod,
+												   [] ( const RawULongInt& a, const RawULongInt& b )->RawULongInt
 		{
 			UnsignedMultiply( a, b, tmp );
 			return tmp;
 		},
-												   [] ( const ULongInt& a, const ULongInt& b )->ULongInt
+												   [] ( const RawULongInt& a, const RawULongInt& b )->RawULongInt
 		{
 			UnsignedDivide( a, b, dummy, tmp );
 			return tmp;
 		} );
+	}
+};
+
+class ULongInt :public RawULongInt<100000000>
+{
+public:
+	ULongInt() :RawULongInt()
+	{}
+	ULongInt( unsigned int val ) :RawULongInt( val )
+	{}
+	ULongInt( const LFA::string& s, char delimiter = ' ' ) :RawULongInt( s, delimiter )
+	{}
+	~ULongInt()
+	{}
+
+	LFA::string ToString( char delimiter = 0 ) const
+	{
+		LFA::string ret;
+		ret.reserve( (size_t)n * 8 );
+		char buf[15];
+		for( int i = n - 1; i >= 0; --i )
+		{
+			sprintf_s( buf, ( i == n - 1 ) ? "%u" : "%08u", m_val[i] );
+			ret += buf;
+			if( delimiter && i != 0 )
+				ret += delimiter;
+		}
+		return ret;
 	}
 };
 }
