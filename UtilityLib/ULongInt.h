@@ -11,10 +11,10 @@ class ULongInt
 {
 public:
 	static constexpr unsigned int RADIX = _RADIX;
+
 protected:
 	typedef unsigned long long ULL;
 
-	bool sign = true;//postive
 	int n = 1;//有效长度
 	LFA::vector<unsigned int> m_val;
 
@@ -23,11 +23,9 @@ public:
 	{
 		m_val.resize( 1, 0 );
 	}
-	ULongInt( int val )
+	ULongInt( unsigned int val )
 	{
 		assert( (ULL)abs( val ) < (ULL)RADIX * RADIX );
-		sign = val >= 0;
-		val = abs( val );
 		if( val < RADIX )
 		{
 			m_val.resize( 1, val );
@@ -49,8 +47,7 @@ public:
 			m_val.resize( 1, 0 );
 			return;
 		}
-		sign = ( s[0] != '-' );
-		const int first = sign ? 0 : 1;
+		const int first = ( s[0] != '-' ) ? 0 : 1;
 
 		n = 1;
 		for( char c : s )
@@ -278,29 +275,6 @@ protected:
 		}
 		c.n = c.count_n( c.n );
 		assert( c.check() );
-	}
-
-	static void SignedPlus( const ULongInt& a, const ULongInt& b, bool sign_a, bool sign_b, ULongInt& c )
-	{
-		if( sign_a == sign_b )
-		{
-			UnsignedPlus( a, b, c );
-			c.sign = sign_a;
-		}
-		else
-		{
-			const bool ge = a >= b;
-			if( ge )
-				UnsignedSub( a, b, c );
-			else
-				UnsignedSub( b, a, c );
-			//a b   c
-			//+ - > +
-			//+ - < -
-			//- + > -
-			//- + < +
-			c.sign = ge ^ sign_b;
-		}
 	}
 
 	static void UnsignedMultiply( const ULongInt& a, const unsigned int b, ULongInt& c )

@@ -6,6 +6,9 @@ namespace Util
 //RADIX = 10^8
 class LongInt :public ULongInt<100000000>
 {
+protected:
+	bool sign = true;//positive or negative
+
 public:
 	class Exception_DivByZero :public std::runtime_error
 	{
@@ -20,10 +23,14 @@ public:
 	{}
 	LongInt( const ULongInt& val ) :ULongInt( val )
 	{}
-	LongInt( int val ) :ULongInt( val )
-	{}
+	LongInt( int val ) :ULongInt( abs(val) )
+	{
+		sign = val > 0;
+	}
 	LongInt( const LFA::string& s, char delimiter = ' ' ) :ULongInt( s, delimiter )
-	{}
+	{
+		sign = s.empty() || s[0] != '-';
+	}
 
 	LFA::string ToString( char delimiter = 0 ) const
 	{
@@ -232,6 +239,31 @@ public:
 		LongInt r = UnsignedModPow( *this, exponent, mod );
 		r.sign = this->sign || ( exponent % 2 == 0 );
 		return r;
+	}
+
+protected:
+	static void SignedPlus( const LongInt& a, const LongInt& b, bool sign_a, bool sign_b, LongInt& c )
+	{
+		if( sign_a == sign_b )
+		{
+			UnsignedPlus( a, b, c );
+			c.sign = sign_a;
+		}
+		else
+		{
+			
+			const bool ge = a.ULongInt::operator>=( b );
+			if( ge )
+				UnsignedSub( a, b, c );
+			else
+				UnsignedSub( b, a, c );
+			//a b   c
+			//+ - > +
+			//+ - < -
+			//- + > -
+			//- + < +
+			c.sign = ge ^ sign_b;
+		}
 	}
 };
 
