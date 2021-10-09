@@ -17,6 +17,19 @@ template <typename Iter_1, typename Iter_2>
 bool LE( Iter_1 vec_begin_1, Iter_2 vec_begin_2, size_t n );
 template <typename Iter_1, typename Iter_2>
 bool GE( Iter_1 vec_begin_1, Iter_2 vec_begin_2, size_t n );
+//return LT(-1) EQ(0) GT(1)
+template <typename Iter_1, typename Iter_2>
+int Compare( Iter_1 vec_begin_1, Iter_2 vec_begin_2, size_t n )
+{
+	while( n-- )
+	{
+		if( *vec_begin_1 != *vec_begin_2 )
+			return ( *vec_begin_1 < *vec_begin_2 ) ? -1 : 1;
+		++vec_begin_1;
+		++vec_begin_2;
+	}
+	return 0;
+}
 
 template <typename Iter, typename Cmp>
 bool isVectorOrdered( Iter begin, Iter end, Cmp cmp );

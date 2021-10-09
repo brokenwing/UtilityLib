@@ -316,3 +316,14 @@ TEST( GenerateVec, n_st_step )
 	int r2[] = { 0,2,4,6 };
 	EXPECT_TRUE( EQ( r1.begin(), r2, 4 ) );
 }
+
+TEST( VecCompare, basic )
+{
+	int n = 4;
+	int a[] = { 1,2,3,4 };
+	int b[] = { 1,2,4,5 };
+	int c[] = { 1,2,2,1 };
+	EXPECT_EQ( Compare( a, b, n ), -1 );
+	EXPECT_EQ( Compare( a, c, n ), 1 );
+	EXPECT_EQ( Compare( a, a, n ), 0 );
+}

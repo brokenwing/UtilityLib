@@ -38,11 +38,11 @@ public:
 	{
 		return data.PowerMod( d, N );
 	}
-	void Generate( size_t min_binarybit = 512 )
+	template<typename RD = std::random_device>
+	void Generate( size_t min_binarybit = 512, RD rd = std::random_device() )
 	{
 		const size_t n = 1 + min_binarybit / 30;
-		std::random_device rd;
-		RNG rng( rd() );
+		RNG rng( rd() );//Prime test RNG
 		
 		_LongInt p, q;
 		p = GeneratePrime( n, rd, rng );

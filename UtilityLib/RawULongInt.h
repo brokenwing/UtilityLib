@@ -90,6 +90,15 @@ public:
 		return !isEven();
 	}
 
+	int Compare( const RawULongInt& other )const
+	{
+		if( n != other.n )
+			return n - other.n;
+		else
+		{
+			return Util::Compare( this->m_val.rbegin() + ( m_val.size() - n ), other.m_val.rbegin() + ( other.m_val.size() - n ), n );
+		}
+	}
 	bool operator<( const RawULongInt& other )const
 	{
 		if( n != other.n )
@@ -426,15 +435,15 @@ protected:
 	{
 		const RawULongInt* n_long = ( a.n > b.n ) ? &a : &b;
 		const RawULongInt* n_short = ( a.n > b.n ) ? &b : &a;
-		c = RawULongInt( 0 );
+		c = 0;
 		thread_local RawULongInt tmp;
 		tmp.m_val.reserve( a.n + b.n );
 		thread_local RawULongInt sum;
 		sum.m_val.reserve( a.n + b.n );
+		c.m_val.reserve( a.n + b.n );
 		int ct = 0;
 		for( int i = 0; i < n_short->n; i++ )
 		{
-			tmp = RawULongInt();
 			UnsignedMultiply( *n_long, n_short->m_val[i], tmp );
 			if( !tmp.isZero() )
 			{
@@ -471,9 +480,10 @@ protected:
 		{
 			auto mid = ( l + r + 1 ) >> 1;
 			UnsignedMultiply( b, mid, tmp );
-			if( tmp > a )
+			const int cmp = tmp.Compare( a );
+			if( cmp > 0 )
 				r = mid - 1;
-			else if( tmp < a )
+			else if( cmp < 0 )
 				l = mid;
 			else
 				return mid;
@@ -540,15 +550,34 @@ protected:
 	{
 		if( exponent == 0 )
 			return RawULongInt( 1 );
-		return Math::FastExponentiation<RawULongInt>( base, exponent, [] ( const RawULongInt& l, const RawULongInt& r )->RawULongInt
+		if( exponent == 1 )
+			return base;
+		RawULongInt x( 1 );
+		thread_local RawULongInt y;
+		x.m_val.reserve( base.n * exponent + 1 );
+		y.m_val.reserve( base.n * exponent + 1 );
+		y = base;
+		while( exponent )
 		{
-			return l * r;
-		} );
+			if( exponent & 1 )
+				x *= y;
+			exponent >>= 1;
+			if( exponent )
+				y *= y;
+		}
+		return x;
 	}
 	static RawULongInt UnsignedPowerMod( const RawULongInt& base, RawULongInt exponent, const RawULongInt& mod )
 	{
+		if( exponent == 0 )
+			return RawULongInt( 1 );
+		if( exponent == 1 )
+			return base % mod;
 		RawULongInt x( 1 );
-		RawULongInt y = base % mod;
+		thread_local RawULongInt y;
+		x.m_val.reserve( base.n * 2 + 1 );
+		y.m_val.reserve( base.n * 2 + 1 );
+		y = base % mod;
 		while( !exponent.isZero() )
 		{
 			if( exponent.isOdd() )
