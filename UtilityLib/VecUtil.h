@@ -108,14 +108,32 @@ inline void SubVec( Iter_1 vec_begin, Iter_2 idx_begin, Iter_1 result_begin, siz
 
 //Merge same element into <elm,count>
 template <typename T, typename Iter>
-inline LFA::vector<std::pair<T, int>> VecCount( Iter begin, Iter end )
+inline LFA::vector<std::pair<T, int>> VecCount2pair( Iter begin, Iter end )
 {
 	LFA::vector<std::pair<T, int>> ret;
+	ret.reserve( std::distance( begin, end ) );
 	for( auto i = begin; i != end; ++i )
 		if( ret.empty() || *i != ret.back().first )
 			ret.emplace_back( *i, 1 );
 		else
 			++ret.back().second;
+	return ret;
+}
+//Merge same element into count list
+template <typename Iter, typename Comparator = std::equal_to<>>
+inline LFA::vector<int> VecCount( Iter begin, Iter end, const Comparator is_eq = std::equal_to<>() )
+{
+	LFA::vector<int> ret;
+	ret.reserve( std::distance( begin, end ) );
+	auto before = begin;
+	for( auto i = begin; i != end; ++i )
+		if( ret.empty() || !is_eq( *i, *before ) )
+		{
+			ret.emplace_back( 1 );
+			before = i;
+		}
+		else
+			++ret.back();
 	return ret;
 }
 
