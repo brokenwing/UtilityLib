@@ -100,6 +100,7 @@ public:
 	double GetScore()const noexcept	{		return m_opt_score;	}
 	decltype( rng )& GetRNG()const noexcept	{		return rng;	}
 	const decltype( m_logList )& GetLogList()const noexcept	{		return m_logList;	}
+	double GetElapsedTime()const	{		return global_time.GetTime();	}
 
 	bool Execute( unsigned int seed = 0 );
 

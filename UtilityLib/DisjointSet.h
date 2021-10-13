@@ -26,7 +26,7 @@ public:
 	{}
 	DisjointSet( size_t size )
 	{
-		Reserve( size );
+		reserve( size );
 	}
 	~DisjointSet()
 	{}
@@ -75,11 +75,11 @@ public:
 			e.second = find( e.first );
 		}
 	}
-	void Clear() noexcept
+	void clear() noexcept
 	{
 		m_id2parent.Clear();
 	}
-	void Reserve( size_t size )
+	void reserve( size_t size )
 	{
 		m_id2parent.reserve( size );
 	}

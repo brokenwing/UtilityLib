@@ -130,12 +130,19 @@ TEST( Util_Move, R_0_1 )
 	for( int i = 0; i < 5; i++ )
 		EXPECT_EQ( arr[i], target[i] );
 }
-
 TEST( Util_Move, R_1_3 )
 {
 	const int target[5] = { 1,3,4,2,5 };
 	int arr[5] = { 1,2,3,4,5 };
 	Move( arr + 1, arr + 3 );
+	for( int i = 0; i < 5; i++ )
+		EXPECT_EQ( arr[i], target[i] );
+}
+TEST( Util_Move, R_0_4 )
+{
+	const int target[5] = { 2,3,4,5,1 };
+	int arr[5] = { 1,2,3,4,5 };
+	Move( arr + 0, arr + 4 );
 	for( int i = 0; i < 5; i++ )
 		EXPECT_EQ( arr[i], target[i] );
 }
@@ -148,12 +155,19 @@ TEST( Util_Move, L_1_0 )
 	for( int i = 0; i < 5; i++ )
 		EXPECT_EQ( arr[i], target[i] );
 }
-
 TEST( Util_Move, L_3_1 )
 {
 	const int target[5] = { 1,4,2,3,5 };
 	int arr[5] = { 1,2,3,4,5 };
 	Move( arr + 3, arr + 1 );
+	for( int i = 0; i < 5; i++ )
+		EXPECT_EQ( arr[i], target[i] );
+}
+TEST( Util_Move, L_4_0 )
+{
+	const int target[5] = { 5,1,2,3,4 };
+	int arr[5] = { 1,2,3,4,5 };
+	Move( arr + 4, arr + 0 );
 	for( int i = 0; i < 5; i++ )
 		EXPECT_EQ( arr[i], target[i] );
 }

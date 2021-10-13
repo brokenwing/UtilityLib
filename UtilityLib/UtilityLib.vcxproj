@@ -171,6 +171,7 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="BlockList.h" />
     <ClInclude Include="DisjointSet.h" />
+    <ClInclude Include="BinaryIndexedTree.h" />
     <ClInclude Include="RSA.h" />
     <ClInclude Include="RawULongInt.h" />
     <ClInclude Include="RawLongInt.h" />

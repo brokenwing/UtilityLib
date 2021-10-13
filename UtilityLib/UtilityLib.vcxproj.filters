@@ -69,6 +69,9 @@
     <ClInclude Include="DisjointSet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="BinaryIndexedTree.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="UtilityLib.cpp">
