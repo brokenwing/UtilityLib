@@ -42,6 +42,7 @@
     <ClCompile Include="LongInt.cpp" />
     <ClCompile Include="ortool.cpp" />
     <ClCompile Include="RSA.cpp" />
+    <ClCompile Include="DisjointSet.cpp" />
     <ClCompile Include="ULongInt.cpp" />
     <ClCompile Include="VecUtil.cpp" />
     <ClCompile Include="test.cpp" />
