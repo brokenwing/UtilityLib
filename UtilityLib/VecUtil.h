@@ -19,17 +19,7 @@ template <typename Iter_1, typename Iter_2>
 bool GE( Iter_1 vec_begin_1, Iter_2 vec_begin_2, size_t n );
 //return LT(-1) EQ(0) GT(1)
 template <typename Iter_1, typename Iter_2>
-int Compare( Iter_1 vec_begin_1, Iter_2 vec_begin_2, size_t n )
-{
-	while( n-- )
-	{
-		if( *vec_begin_1 != *vec_begin_2 )
-			return ( *vec_begin_1 < *vec_begin_2 ) ? -1 : 1;
-		++vec_begin_1;
-		++vec_begin_2;
-	}
-	return 0;
-}
+int Compare( Iter_1 vec_begin_1, Iter_2 vec_begin_2, size_t n );
 
 template <typename Iter, typename Cmp>
 bool isVectorOrdered( Iter begin, Iter end, Cmp cmp );
@@ -61,6 +51,30 @@ bool isSame( Iter begin, Iter end )
 		return l == r;
 	} );
 }
+//{a,b,c}->{0,1,2}
+template <typename Iter, typename _Func, typename UIDtype = int>
+LFA::unordered_map<UIDtype, size_t> VecIndexing( Iter begin, Iter end, const _Func get_uid )
+{
+	LFA::unordered_map<UIDtype, size_t> ret;
+	ret.reserve( std::distance( begin, end ) );
+	for( auto i = begin; i != end; ++i )
+	{
+		ret[get_uid( *i )];
+	}
+	size_t idx = 0;
+	for( auto& e : ret )
+		e.second = idx++;
+	return ret;
+}
+template <typename Iter, typename UIDtype = int>
+LFA::unordered_map<UIDtype, size_t> VecIndexing( Iter begin, Iter end )
+{
+	return VecIndexing( begin, end, [] ( auto v )->UIDtype
+	{
+		return v;
+	} );
+}
+
 
 //Vector
 
@@ -215,6 +229,20 @@ template <typename Iter_1, typename Iter_2>
 bool GE( Iter_1 vec_begin_1, Iter_2 vec_begin_2, size_t n )
 {
 	return !LT( vec_begin_1, vec_begin_2, n );
+}
+
+//return LT(-1) EQ(0) GT(1)
+template<typename Iter_1, typename Iter_2>
+int Compare( Iter_1 vec_begin_1, Iter_2 vec_begin_2, size_t n )
+{
+	while( n-- )
+	{
+		if( *vec_begin_1 != *vec_begin_2 )
+			return ( *vec_begin_1 < *vec_begin_2 ) ? -1 : 1;
+		++vec_begin_1;
+		++vec_begin_2;
+	}
+	return 0;
 }
 
 template <typename Iter, typename Cmp>

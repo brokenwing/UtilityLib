@@ -348,3 +348,27 @@ TEST( VecCompare, basic )
 	EXPECT_EQ( Compare( a, c, n ), 1 );
 	EXPECT_EQ( Compare( a, a, n ), 0 );
 }
+
+TEST( VecIndexing, basic )
+{
+	int n = 4;
+	int a[] = { 123,250,-1,0 };
+	auto r = VecIndexing( a, a + n );
+	FOR( i, 0, n )
+		EXPECT_EQ( i, r[a[i]] );
+}
+TEST( VecIndexing, structure )
+{
+	struct Node
+	{
+		int me = 0;
+	};
+	int n = 4;
+	Node a[] = { 123,250,-1,0 };
+	auto r = VecIndexing( a, a + n, [] ( auto v )
+	{
+		return v.me;
+	} );
+	FOR( i, 0, n )
+		EXPECT_EQ( i, r[a[i].me] );
+}
