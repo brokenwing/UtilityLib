@@ -16,6 +16,9 @@
     <Filter Include="Header Files\LongInt">
       <UniqueIdentifier>{68c2db40-60c7-4d0f-ac78-1af05b15f6f9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\GraphTheory">
+      <UniqueIdentifier>{8ee5fbf2-070a-4162-8236-a308dc5c9553}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -71,6 +74,15 @@
     </ClInclude>
     <ClInclude Include="BinaryIndexedTree.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Graph.h">
+      <Filter>Header Files\GraphTheory</Filter>
+    </ClInclude>
+    <ClInclude Include="SparseGraph.h">
+      <Filter>Header Files\GraphTheory</Filter>
+    </ClInclude>
+    <ClInclude Include="DenseGraph.h">
+      <Filter>Header Files\GraphTheory</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

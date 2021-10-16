@@ -170,8 +170,11 @@
     <ClInclude Include="CommonDef.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="BlockList.h" />
+    <ClInclude Include="Graph.h" />
     <ClInclude Include="DisjointSet.h" />
     <ClInclude Include="BinaryIndexedTree.h" />
+    <ClInclude Include="DenseGraph.h" />
+    <ClInclude Include="SparseGraph.h" />
     <ClInclude Include="RSA.h" />
     <ClInclude Include="RawULongInt.h" />
     <ClInclude Include="RawLongInt.h" />
