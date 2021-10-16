@@ -115,6 +115,7 @@ protected:
 	double GetProgress()const noexcept	{		return m_progress;	}
 	const Solution& GetCurrSolution()const noexcept	{		return m_current;	}
 	double GetCurrScore()const noexcept	{		return m_score;	}
+	double GetCurrTemperature()const noexcept	{		return m_cur_T;	}
 
 	void DefaultHook( const tState state )
 	{
@@ -220,8 +221,8 @@ inline bool SimulatedAnnealing<Solution, Engine>::Execute( unsigned int seed )
 				m_opt_score = m_nxt_score;
 				DefaultHook( tState::kUpdateSolution );
 			}
-			m_score = m_nxt_score;
 			DefaultHook( tState::kAcceptSolution );
+			m_score = m_nxt_score;
 		}
 		else
 		{
@@ -249,7 +250,7 @@ inline void SimulatedAnnealing<Solution, Engine>::UpdateLog( const tState state 
 	if( m_max_log_size > 0 && ( (int)state & m_collect_flag ) != 0
 		&& ( state == tState::kFinish || m_logList.empty() || m_logList.back().iteration + m_iteration_per_log <= m_iteration ) )
 	{
-		m_logList.emplace_back( GetCurrScore(), GetScore(), GetIteration(), global_time.GetTime(), GetProgress(), m_cur_T );
+		m_logList.emplace_back( GetCurrScore(), GetScore(), GetIteration(), global_time.GetTime(), GetProgress(), GetCurrTemperature() );
 	}
 }
 

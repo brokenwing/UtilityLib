@@ -116,8 +116,8 @@ inline bool HillClimb<Solution, Engine>::Execute( unsigned int seed )
 		DefaultHook( tState::kNeighbor );
 		if( isMaximize ? Util::GT( m_nxt_score, m_best_score ) : Util::LT( m_nxt_score, m_best_score ) )
 		{
-			m_best_score = m_nxt_score;
 			DefaultHook( tState::kAcceptSolution );
+			m_best_score = m_nxt_score;
 		}
 		else
 		{
