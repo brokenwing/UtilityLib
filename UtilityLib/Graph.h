@@ -9,61 +9,15 @@ namespace Util::GraphTheory
 {
 /*
 * Goal: Be able to choose the most effecient Graph according to the needs
-*********	Standard Graph
-* Common Type
-Node
-Edge
-iterator_node
-iterator_edge
-const_iterator_node
-const_iterator_edge
 
-* Common Interface
-iterator_node begin_node();
-iterator_node end_node();
-const_iterator_node cbegin_node()const;
-const_iterator_node cend_node()const;
-iterator_edge begin_edge();
-iterator_edge end_edge();
-const_iterator_edge cbegin_edge()const;
-const_iterator_edge cend_edge()const;
-
-bool HasNode(int idx)const;
-Node* GetNode(int idx);
-const Node* GetNode(int idx)const;
-Edge& AddEdge(s,t);
-Edge* GetNextEdge(Node&);
-const Edge* GetNextEdge(Node&)const;
-Edge* GetNextEdge(Edge&);
-const Edge* GetNextEdge(Edge&)const;
-size_t CountOutDegree(Node&)const;
-
-size_t size_node()const;
-size_t size_edge()const;
-
-clear();
-reserve(size_t n, size_t m); //node and edge (not necessary implemented)
-resize(size_t n); //node
-
-* Inverse Edge Option
-Edge* GetNextInverseEdge(Node&);
-const Edge* GetNextInverseEdge(Node&)const;
-Edge* GetNextInverseEdge(Edge&);
-const Edge* GetNextInverseEdge(Edge&)const;
-size_t CountInDegree(Node&)const;
-
-* Edge Random Access Option
-Edge* GetEdge(int idx);
-const Edge* GetEdge(int idx)const;
-Edge* GetEdge(int st,int ed);
-const Edge* GetEdge(int st, int ed)const;
-
-* Add Option
-Node& AddNode();
-
-* Erase Option
-void EraseNode(Node&);
-void EraseEdge(Edge&);
+* Property Definition
+	is_sparse_graph			//sparse or dense
+	is_discrete_idx			//No := idx of Node is 0,1,2,3,... ; Yes := idx of Node is 1,3,9,...
+	is_node_addable			//use resize if not addable
+	is_node_erasable
+	is_edge_erasable
+	is_edge_duplicatable
+	has_inverse_edge		//be able to find edge to p
 */
 
 //Base class of Node
@@ -146,6 +100,18 @@ concept weighted_edge_type = edge_type<T> && std::is_base_of_v<WeightedEdge<type
 
 template <typename T>
 concept _Is_constant_bool = std::same_as<std::true_type, T > || std::same_as<std::false_type, T >;
+template <typename T>
+concept _Is_sparse_graph = std::same_as<std::true_type, typename T::is_sparse_graph >;
+template <typename T>
+concept _Is_discrete_idx = std::same_as<std::true_type, typename T::is_discrete_idx >;
+template <typename T>
+concept _Is_dense_graph = !_Is_sparse_graph<T>;
+template <typename T>
+concept _Is_node_addable = std::same_as<std::true_type, typename T::is_node_addable >;
+template <typename T>
+concept _Is_edge_erasable = std::same_as<std::true_type, typename T::is_edge_erasable >;
+template <typename T>
+concept _Has_inverse_edge = std::same_as<std::true_type, typename T::has_inverse_edge >;
 
 template <typename T>
 concept _Has_graph_property =
@@ -155,6 +121,7 @@ node_type<typename T::Node> && edge_type<typename T::Edge>
 && std::_Is_iterator_v<typename T::const_iterator_node>
 && std::_Is_iterator_v<typename T::const_iterator_edge>
 && _Is_constant_bool<typename T::is_sparse_graph>
+&& _Is_constant_bool<typename T::is_discrete_idx>
 && _Is_constant_bool<typename T::is_node_addable>
 && _Is_constant_bool<typename T::is_node_erasable>
 && _Is_constant_bool<typename T::is_edge_erasable>
@@ -230,13 +197,13 @@ requires( T & g, const typename T::Node & p, const typename T::Edge & e )
 
 template <typename T>
 concept _Has_graph_optional_interface =
-( std::same_as<typename T::is_sparse_graph, std::true_type> || _Has_dense_graph_interface<T> ) &&
-( std::same_as<typename T::is_node_addable, std::false_type> || requires( T & g )
+(  _Is_sparse_graph<T> || _Has_dense_graph_interface<T> ) &&
+( !_Is_node_addable<T> || requires( T & g )
 {
 	{		g.AddNode()	}->std::same_as<typename T::Node&>;
 } ) &&
-( std::same_as<typename T::has_inverse_edge, std::false_type> || _Has_graph_inverse_edge_interface<T> ) &&
-( std::same_as<typename T::is_edge_erasable, std::false_type> || requires( T & g, typename T::Edge & e )
+( !_Has_inverse_edge<T> || _Has_graph_inverse_edge_interface<T> ) &&
+( !_Is_edge_erasable<T> || requires( T & g, typename T::Edge & e )
 {
 	{		g.EraseEdge( e )	}->std::same_as<void>;
 });
@@ -251,4 +218,9 @@ static_assert( node_type<BasicNode>,"BasicNode Check Fail" );
 static_assert( node_type<WeightedNode<>>,"WeightedNode Check Fail" );
 static_assert( edge_type<BasicEdge>,"BasicEdge Check Fail" );
 static_assert( edge_type<WeightedEdge<>>,"WeightedEdge Check Fail" );
+
+
+
+template <graph_type Graph, typename DistanceInfo>
+using DistanceVector = std::conditional_t<_Is_discrete_idx<Graph>, LFA::unordered_map<int, DistanceInfo>, LFA::vector<DistanceInfo>>;
 }

@@ -9,12 +9,13 @@ class DenseGraph
 public:
 	using Node = _Node;
 	using Edge = _Edge;
-	using is_sparse_graph = std::false_type;
-	using is_node_addable = std::false_type;
-	using is_node_erasable = std::false_type;
-	using is_edge_erasable = std::true_type;
-	using is_edge_duplicatable = std::false_type;
-	using has_inverse_edge = std::true_type;
+	using is_sparse_graph		= std::false_type;
+	using is_discrete_idx		= std::false_type;
+	using is_node_addable		= std::false_type;
+	using is_node_erasable		= std::false_type;
+	using is_edge_erasable		= std::true_type;
+	using is_edge_duplicatable	= std::false_type;
+	using has_inverse_edge		= std::true_type;
 
 protected:
 	template <bool is_const_iterator>
@@ -226,4 +227,5 @@ protected:
 		reference operator*() const		{			return ref[s][t];		}
 	};
 };
+static_assert( graph_type<DenseGraph<BasicNode, BasicEdge>> );
 }

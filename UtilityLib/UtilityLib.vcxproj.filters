@@ -84,6 +84,9 @@
     <ClInclude Include="DenseGraph.h">
       <Filter>Header Files\GraphTheory</Filter>
     </ClInclude>
+    <ClInclude Include="Dijkstra.h">
+      <Filter>Header Files\GraphTheory</Filter>
+    </ClInclude>
     <ClInclude Include="dynamic_priority_queue.h">
       <Filter>Header Files</Filter>
     </ClInclude>

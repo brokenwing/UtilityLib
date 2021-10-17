@@ -42,6 +42,7 @@ public:
 	{
 		const int pos = idx2pos[idx];
 		swap( pos, (int)heap.size() - 1 );
+		idx2pos[heap[(int)heap.size() - 1].idx] = -1;
 		heap.pop_back();
 		update_up( pos + 1 );
 		update_down( pos + 1 );
@@ -59,6 +60,7 @@ public:
 		heap.reserve( n );
 		idx2pos.assign( n, -1 );
 	}
+	bool exists( int idx )const	{		return idx2pos[idx] != -1;	}
 protected:
 	//heap[X]->heap[X-1] since it works from index 1
 	void swap( int a, int b )

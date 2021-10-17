@@ -9,12 +9,13 @@ class SparseGraph
 public:
 	class Node;
 	class Edge;
-	using is_sparse_graph = std::true_type;
-	using is_node_addable = std::true_type;
-	using is_node_erasable = std::false_type;
-	using is_edge_erasable = std::false_type;
-	using is_edge_duplicatable = std::true_type;
-	using has_inverse_edge = std::true_type;
+	using is_sparse_graph		= std::true_type;
+	using is_discrete_idx		= std::false_type;
+	using is_node_addable		= std::true_type;
+	using is_node_erasable		= std::false_type;
+	using is_edge_erasable		= std::false_type;
+	using is_edge_duplicatable	= std::true_type;
+	using has_inverse_edge		= std::true_type;
 
 protected:
 	LFA::vector<Node> m_nodeList;

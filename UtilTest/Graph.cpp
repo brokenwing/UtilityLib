@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "SparseGraph.h"
 #include "DenseGraph.h"
+#include "Dijkstra.h"
 
 using namespace Util::GraphTheory;
 
@@ -242,4 +243,61 @@ TEST( DenseGraph, erase )
 	EXPECT_TRUE( !g.GetEdge( 1, 2 ) );
 	EXPECT_TRUE( e1.valid() );
 	EXPECT_TRUE( e3.valid() );
+}
+
+TEST( Dijkstra, DenseGraph_easy )
+{
+	DenseGraph<BasicNode, WeightedEdge<int>> g;
+	g.resize( 3 );
+	g.AddEdge( 0, 2 ).GetWeight() = 10;
+	g.AddEdge( 0, 1 ).GetWeight() = 3;
+	g.AddEdge( 1, 2 ).GetWeight() = 3;
+	auto r = Dijkstra( g, 0, 2 );
+	EXPECT_EQ( r.GetDistance(), 6 );
+	EXPECT_TRUE( r.isReachable() );
+}
+TEST( Dijkstra, DenseGraph_large )
+{
+	DenseGraph<BasicNode, WeightedEdge<int>> g;
+	std::uniform_int_distribution<int> randw( 1, 100 );
+	Util::RNG rng( 0 );
+	const int n = 100;
+	g.resize( n );
+	FOR( i, 0, n )
+		FOR( j, 0, n )
+			if( i != j )
+				g.AddEdge( i, j ).GetWeight() = randw( rng );
+	FOR( i, 1, n )
+		g.GetEdge( i - 1, i )->GetWeight() = 0;
+	auto r = Dijkstra( g, 0, n - 1 );
+	EXPECT_EQ( r.GetDistance(), 0 );
+	EXPECT_TRUE( r.isReachable() );
+}
+TEST( Dijkstra, SparseGraph )
+{
+	SparseGraph<BasicNode, WeightedEdge<int>> g;
+	g.resize( 3 );
+	g.AddEdge( 0, 2 ).GetWeight() = 10;
+	g.AddEdge( 0, 1 ).GetWeight() = 3;
+	g.AddEdge( 1, 2 ).GetWeight() = 3;
+	auto r = Dijkstra( g, 0, 2 );
+	EXPECT_EQ( r.GetDistance(), 6 );
+	EXPECT_TRUE( r.isReachable() );
+}
+TEST( Dijkstra, SparseGraph_large )
+{
+	SparseGraph<BasicNode, WeightedEdge<int>> g;
+	std::uniform_int_distribution<int> randw( 1, 100 );
+	Util::RNG rng( 0 );
+	const int n = 100;
+	g.resize( n );
+	FOR( i, 0, n )
+		FOR( j, 0, n )
+			if( i != j )
+				g.AddEdge( i, j ).GetWeight() = randw( rng );
+	FOR( i, 1, n )
+		g.AddEdge( i - 1, i ).GetWeight() = 0;
+	auto r = Dijkstra( g, 0, n - 1 );
+	EXPECT_EQ( r.GetDistance(), 0 );
+	EXPECT_TRUE( r.isReachable() );
 }
