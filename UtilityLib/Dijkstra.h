@@ -1,6 +1,7 @@
 #pragma once
 #include "Graph.h"
 #include "dynamic_priority_queue.h"
+#include "VecUtil.h"
 
 namespace Util::GraphTheory
 {
@@ -36,19 +37,16 @@ DistanceVector<Graph, DistanceInfo_Dijkstra<Graph>> Dijkstra( const Graph& g, in
 		dis_vector.reserve( n );
 	else
 		dis_vector.resize( n );
+
 	//heap use index 0,1,2,...;  node might use any index
 	LFA::unordered_map<int, int> node_idx2idx;
 	LFA::vector<int> idx_list;
 	if constexpr( _Is_discrete_idx<Graph> )
 	{
 		idx_list.reserve( g.size_node() );
-		node_idx2idx.reserve( g.size_node() );
-		int idx = 0;
 		for( auto i = g.begin_node(); i != g.end_node(); ++i )
-		{
 			idx_list.emplace_back( i->GetIdx() );
-			node_idx2idx[i->GetIdx()] = idx++;
-		}
+		node_idx2idx = VecIndexing( idx_list.begin(), idx_list.end() );
 	}
 
 	dis_vector[start_idx].reachable = true;
