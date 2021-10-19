@@ -1,11 +1,46 @@
 #include "pch.h"
 #include "Util.h"
 #include "CommonDef.h"
+#include "Timer.h"
+#include <thread>
 
 using namespace Util;
 
 constexpr double EPS_UP = 1.1;
 constexpr double EPS_LOW = 0.9;
+
+TEST( Timer, normal_clock )
+{
+	int dur = 10;
+	int err = dur * 2;
+	Timer t;
+	t.SetTime();
+	std::this_thread::sleep_for( std::chrono::milliseconds( dur ) );
+	double s = t.GetTime();
+	std::int64_t mill = t.GetMilliseconds();
+	std::int64_t micro = t.GetMicroseconds();
+	std::int64_t nano = t.GetNanoseconds();
+	EXPECT_LE( abs( mill - dur ), err );
+	EXPECT_LE( abs( micro / 1000 - dur ), err );
+	EXPECT_LE( abs( nano / 1000000 - dur ), err );
+	EXPECT_LE( abs( (int)( s * 1000 ) - dur ), err );
+}
+TEST( Timer, high_resolution )
+{
+	int dur = 10;
+	int err = dur * 2;
+	HighResolutionTimer t;
+	t.SetTime();
+	std::this_thread::sleep_for( std::chrono::milliseconds( dur ) );
+	double s = t.GetTime();
+	std::int64_t mill = t.GetMilliseconds();
+	std::int64_t micro = t.GetMicroseconds();
+	std::int64_t nano = t.GetNanoseconds();
+	EXPECT_LE( abs( mill - dur ), err );
+	EXPECT_LE( abs( micro / 1000 - dur ), err );
+	EXPECT_LE( abs( nano / 1000000 - dur ), err );
+	EXPECT_LE( abs( (int)( s * 1000 ) - dur ), err );
+}
 
 TEST( Util, IsZero )
 {
