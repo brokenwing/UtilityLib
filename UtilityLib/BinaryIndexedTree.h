@@ -27,14 +27,14 @@ public:
 	{}
 	void Add( const int pos, const ValueType& val )
 	{
-		assert( pos >= 0 && pos < n );
+		assert( pos >= 0 && pos < (int)n );
 		_add_( pos, val );
 	}
 	//[l,r]
 	ValueType SumInterval( const int left, const int right )const
 	{
-		assert( left < n );
-		assert( right < n );
+		assert( left < (int)n );
+		assert( right < (int)n );
 		return _sum_( right ) - _sum_( left - 1 );
 	}
 	ValueType at( const int index )const
@@ -63,7 +63,7 @@ private:
 	//[index,end]
 	void _add_( const int index, const ValueType& val )
 	{
-		for( int j = index + 1; j <= n; j += lowbit( j ) )
+		for( int j = index + 1; j <= (int)n; j += lowbit( j ) )
 			arr[j] += val;
 	}
 	//[begin,index]

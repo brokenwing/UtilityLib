@@ -55,7 +55,7 @@ public:
 	Node* GetNode( int idx )			{		return const_cast<Node*>( const_cast<const DenseGraph*>( this )->GetNode( idx ) );	}
 	Edge* GetNextEdge( const Node& p )	{		return const_cast<Edge*>( const_cast<const DenseGraph*>( this )->GetNextEdge( p ) );	}
 	
-	bool HasNode( int idx )const		{		return idx >= 0 && idx < m_nodeList.size();	}
+	bool HasNode( int idx )const		{		return idx >= 0 && idx < (int)m_nodeList.size();	}
 	const Node* GetNode( int idx )const	{		return &m_nodeList[idx];	}
 	const Edge* GetNextEdge( const Node& p )const
 	{
@@ -68,7 +68,7 @@ public:
 	{
 		auto& row = m_matrix[e.GetSource()];
 		auto n = row.size();
-		for( int t = e.GetDestination() + 1; t < n; ++t )
+		for( int t = e.GetDestination() + 1; t < (int)n; ++t )
 			if( auto& tmp = row[t]; tmp.GetIdx() > 0 )
 				return &tmp;
 		return nullptr;
@@ -120,7 +120,7 @@ public:
 	const Edge* GetNextInverseEdge( const Edge& e )const
 	{
 		auto n = m_matrix.size();
-		for( int s = e.GetSource() + 1; s < n; ++s )
+		for( int s = e.GetSource() + 1; s < (int)n; ++s )
 			if( auto& tmp = m_matrix[s][e.GetDestination()]; tmp.GetIdx() > 0 )
 				return &tmp;
 		return nullptr;
@@ -194,24 +194,24 @@ protected:
 		}
 		_Iterator_edge( int s, int t, _Graph_matrix& mat ) : ref( mat ), s( s ), t( t )
 		{
-			if( s < ref.size() && ref[s][t].GetIdx() <= 0 )
+			if( s < (int)ref.size() && ref[s][t].GetIdx() <= 0 )
 				operator++();
 		}
 	public:
 		friend class DenseGraph;
 		_Iterator_edge& operator++()
 		{
-			if( s < ref.size() )
+			if( s < (int)ref.size() )
 			{
 				do
 				{
 					++t;
-					if( t >= ref[s].size() )
+					if( t >= (int)ref[s].size() )
 					{
 						t = 0;
 						++s;
 					}
-				} while( s < ref.size() && ref[s][t].GetIdx() <= 0 );
+				} while( s < (int)ref.size() && ref[s][t].GetIdx() <= 0 );
 			}
 			return *this;
 		}

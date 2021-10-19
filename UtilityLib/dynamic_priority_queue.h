@@ -89,7 +89,7 @@ protected:
 	//heap[X]->heap[X-1] since it works from index 1
 	void update_up( int pos )
 	{
-		if( pos > heap.size() )
+		if( pos > (int)heap.size() )
 			return;
 		int i;
 		while( ( pos >> 1 ) > 0 )

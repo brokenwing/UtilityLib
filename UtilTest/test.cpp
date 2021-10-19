@@ -12,7 +12,7 @@ constexpr double EPS_LOW = 0.9;
 TEST( Timer, normal_clock )
 {
 	int dur = 10;
-	int err = dur * 2;
+	int err = dur * 3;
 	Timer t;
 	t.SetTime();
 	std::this_thread::sleep_for( std::chrono::milliseconds( dur ) );
@@ -28,7 +28,7 @@ TEST( Timer, normal_clock )
 TEST( Timer, high_resolution )
 {
 	int dur = 10;
-	int err = dur * 2;
+	int err = dur * 3;
 	HighResolutionTimer t;
 	t.SetTime();
 	std::this_thread::sleep_for( std::chrono::milliseconds( dur ) );

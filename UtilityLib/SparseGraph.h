@@ -62,7 +62,7 @@ public:
 	Node* GetNode( int idx )			{		return const_cast<Node*>( const_cast<const SparseGraph*>( this )->GetNode( idx ) );	}
 	Edge* GetNextEdge( const Node& p )	{		return const_cast<Edge*>( const_cast<const SparseGraph*>( this )->GetNextEdge( p ) );	}
 	
-	bool HasNode( int idx )const		{		return idx >= 0 && idx < m_nodeList.size();	}
+	bool HasNode( int idx )const		{		return idx >= 0 && idx < (int)m_nodeList.size();	}
 	const Node* GetNode( int idx )const	{		return &m_nodeList[idx];	}
 	const Edge* GetNextEdge( const Node& p )const
 	{
