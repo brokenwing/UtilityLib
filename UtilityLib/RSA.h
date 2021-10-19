@@ -69,7 +69,7 @@ private:
 		do
 		{
 			p = _LongInt::Rand( n, rd );
-		} while( p.GetBit() < n );
+		} while( p.GetBit() < (int)n );
 		while( !p.MillerRabinPrimeTest( N_PRIME_TEST, rng ) )
 		{
 			++p;
