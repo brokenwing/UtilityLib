@@ -21,9 +21,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="framework.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="pch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -89,6 +86,9 @@
     </ClInclude>
     <ClInclude Include="dynamic_priority_queue.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GraphTool.h">
+      <Filter>Header Files\GraphTheory</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

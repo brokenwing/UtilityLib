@@ -2,6 +2,7 @@
 #include "SparseGraph.h"
 #include "DenseGraph.h"
 #include "Dijkstra.h"
+#include "GraphTool.h"
 
 using namespace Util::GraphTheory;
 
@@ -300,4 +301,17 @@ TEST( Dijkstra, SparseGraph_large )
 	auto r = Dijkstra( g, 0, n - 1 );
 	EXPECT_EQ( r.GetDistance(), 0 );
 	EXPECT_TRUE( r.isReachable() );
+}
+TEST( Tool, findcompoent )
+{
+	SparseGraph<> g;
+	g.resize( 4 );
+	g.AddEdge( 0, 1 );
+	g.AddEdge( 2, 3 );
+	auto r = find_component( g, 0 );
+	ASSERT_EQ( r.size(), 2 );
+	EXPECT_TRUE( ( r[0] == 0 && r[1] == 1 ) || ( r[0] == 1 && r[1] == 0 ) );
+	auto r2 = find_component( g, 1 );
+	ASSERT_EQ( r2.size(), 1 );
+	EXPECT_EQ( r2[0], 1 );
 }

@@ -3,7 +3,7 @@
 
 namespace Util::GraphTheory
 {
-template <node_type _Node, edge_type _Edge>
+template <node_type _Node = BasicNode, edge_type _Edge = BasicEdge>
 class SparseGraph
 {
 public:

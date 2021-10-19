@@ -103,6 +103,9 @@
       </SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <LinkTimeCodeGeneration>false</LinkTimeCodeGeneration>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -143,6 +146,9 @@
       </SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <LinkTimeCodeGeneration>false</LinkTimeCodeGeneration>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -168,7 +174,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="CommonDef.h" />
-    <ClInclude Include="framework.h" />
     <ClInclude Include="BlockList.h" />
     <ClInclude Include="Graph.h" />
     <ClInclude Include="DisjointSet.h" />
@@ -176,6 +181,7 @@
     <ClInclude Include="DenseGraph.h" />
     <ClInclude Include="Dijkstra.h" />
     <ClInclude Include="dynamic_priority_queue.h" />
+    <ClInclude Include="GraphTool.h" />
     <ClInclude Include="SparseGraph.h" />
     <ClInclude Include="RSA.h" />
     <ClInclude Include="RawULongInt.h" />
