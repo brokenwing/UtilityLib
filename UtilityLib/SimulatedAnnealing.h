@@ -400,6 +400,5 @@ inline std::tuple<double, double> SimulatedAnnealing<Solution, Engine>::CalcTemp
 		break;
 	}
 	return { complete_rate,val };
-	//LogFile::INFO.print(_T("%.10lf\n"),val);
 }
 }

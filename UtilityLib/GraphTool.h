@@ -5,7 +5,7 @@
 namespace Util::GraphTheory
 {
 template<graph_type Graph>
-LFA::vector<int> find_component( const Graph& g, int start_idx )
+LFA::vector<int> find_connected_component( const Graph& g, int start_idx )
 {
 	LFA::unordered_map<int, int> node_idx2idx;
 	LFA::vector<int> idx_list;
