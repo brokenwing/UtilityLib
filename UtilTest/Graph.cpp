@@ -249,11 +249,14 @@ TEST( DenseGraph, erase )
 TEST( Dijkstra, DenseGraph_easy )
 {
 	DenseGraph<BasicNode, WeightedEdge<int>> g;
+	const int end_point = 2;
 	g.resize( 3 );
 	g.AddEdge( 0, 2 ).GetWeight() = 10;
 	g.AddEdge( 0, 1 ).GetWeight() = 3;
 	g.AddEdge( 1, 2 ).GetWeight() = 3;
-	auto r = Dijkstra( g, 0, 2 );
+	auto r = Dijkstra( g, 0, end_point );
+	auto r2 = Dijkstra( g, 0 );
+	EXPECT_EQ( r2[end_point].GetDistance(), r.GetDistance() );
 	EXPECT_EQ( r.GetDistance(), 6 );
 	EXPECT_TRUE( r.isReachable() );
 }
@@ -263,6 +266,7 @@ TEST( Dijkstra, DenseGraph_large )
 	std::uniform_int_distribution<int> randw( 1, 100 );
 	Util::RNG rng( 0 );
 	const int n = 100;
+	const int end_point = n - 1;
 	g.resize( n );
 	FOR( i, 0, n )
 		FOR( j, 0, n )
@@ -270,18 +274,23 @@ TEST( Dijkstra, DenseGraph_large )
 				g.AddEdge( i, j ).GetWeight() = randw( rng );
 	FOR( i, 1, n )
 		g.GetEdge( i - 1, i )->GetWeight() = 0;
-	auto r = Dijkstra( g, 0, n - 1 );
+	auto r = Dijkstra( g, 0, end_point );
+	auto r2 = Dijkstra( g, 0 );
+	EXPECT_EQ( r2[end_point].GetDistance(), r.GetDistance() );
 	EXPECT_EQ( r.GetDistance(), 0 );
 	EXPECT_TRUE( r.isReachable() );
 }
 TEST( Dijkstra, SparseGraph )
 {
 	SparseGraph<BasicNode, WeightedEdge<int>> g;
+	const int end_point = 2;
 	g.resize( 3 );
 	g.AddEdge( 0, 2 ).GetWeight() = 10;
 	g.AddEdge( 0, 1 ).GetWeight() = 3;
 	g.AddEdge( 1, 2 ).GetWeight() = 3;
-	auto r = Dijkstra( g, 0, 2 );
+	auto r = Dijkstra( g, 0, end_point );
+	auto r2 = Dijkstra( g, 0 );
+	EXPECT_EQ( r2[end_point].GetDistance(), r.GetDistance() );
 	EXPECT_EQ( r.GetDistance(), 6 );
 	EXPECT_TRUE( r.isReachable() );
 }
@@ -291,6 +300,7 @@ TEST( Dijkstra, SparseGraph_large )
 	std::uniform_int_distribution<int> randw( 1, 100 );
 	Util::RNG rng( 0 );
 	const int n = 100;
+	const int end_point = n - 1;
 	g.resize( n );
 	FOR( i, 0, n )
 		FOR( j, 0, n )
@@ -298,9 +308,20 @@ TEST( Dijkstra, SparseGraph_large )
 				g.AddEdge( i, j ).GetWeight() = randw( rng );
 	FOR( i, 1, n )
 		g.AddEdge( i - 1, i ).GetWeight() = 0;
-	auto r = Dijkstra( g, 0, n - 1 );
+	auto r = Dijkstra( g, 0, end_point );
+	auto r2 = Dijkstra( g, 0 );
+	EXPECT_EQ( r2[end_point].GetDistance(), r.GetDistance() );
 	EXPECT_EQ( r.GetDistance(), 0 );
 	EXPECT_TRUE( r.isReachable() );
+}
+TEST( GraphNodeIdx2List, normal )
+{
+	SparseGraph<BasicNode, WeightedEdge<int>> g;
+	g.resize( 3 );
+	GraphNodeIdx2List<decltype( g )> ref( g );
+	EXPECT_EQ( ref[0], 0 );
+	EXPECT_EQ( ref[1], 1 );
+	EXPECT_EQ( ref[2], 2 );
 }
 TEST( Tool, findcompoent )
 {

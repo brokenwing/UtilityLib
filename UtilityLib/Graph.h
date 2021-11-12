@@ -219,8 +219,62 @@ static_assert( node_type<WeightedNode<>>,"WeightedNode Check Fail" );
 static_assert( edge_type<BasicEdge>,"BasicEdge Check Fail" );
 static_assert( edge_type<WeightedEdge<>>,"WeightedEdge Check Fail" );
 
+//map graph node index to [0,n)
+template <graph_type _Graph>
+class GraphNodeIdx2List
+{
+protected:
+	std::unordered_map<int, int> node_idx2idx;
+	std::vector<int> idx2node_idx;
 
+public:
+	using Graph = _Graph;
 
-template <graph_type Graph, typename DistanceInfo>
-using DistanceVector = std::conditional_t<_Is_discrete_idx<Graph>, LFA::unordered_map<int, DistanceInfo>, LFA::vector<DistanceInfo>>;
+	GraphNodeIdx2List( const Graph& g )
+	{
+		if constexpr( _Is_discrete_idx<Graph> )
+		{
+			idx2node_idx.reserve( g.node_size() );
+			node_idx2idx.reserve( g.node_size() );
+			for( auto i = g.begin_node(); i != g.end_node(); ++i )
+				node_idx2idx[i->GetIdx()];
+			int idx = 0;
+			for( auto& e : node_idx2idx )
+			{
+				idx2node_idx.emplace_back( e.first );
+				e.second = idx++;
+			}
+		}
+	}
+	int GetNodeIdx( const int idx )const
+	{
+		if constexpr( _Is_discrete_idx<Graph> )
+		{
+			return idx2node_idx[idx];
+		}
+		else
+			return idx;
+	}
+	//with check
+	int at( const int node_idx )const
+	{
+		if constexpr( _Is_discrete_idx<Graph> )
+		{
+			auto r = node_idx2idx.find( node_idx2idx );
+			return ( r == node_idx2idx.end() ) ? -1 : *r;
+		}
+		else
+			return node_idx;
+	}
+	//no check
+	int operator[]( const int node_idx )const
+	{
+		if constexpr( _Is_discrete_idx<Graph> )
+		{
+			return *node_idx2idx.find( node_idx2idx );
+		}
+		else
+			return node_idx;
+	}
+};
 }
