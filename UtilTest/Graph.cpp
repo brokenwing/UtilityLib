@@ -336,3 +336,50 @@ TEST( Tool, findcompoent )
 	ASSERT_EQ( r2.size(), 1 );
 	EXPECT_EQ( r2[0], 1 );
 }
+TEST( topological_sort, ng )
+{
+	SparseGraph<> g;
+	g.resize( 4 );
+	g.AddEdge( 0, 1 );
+	g.AddEdge( 1, 0 );
+	auto r = topological_sort( g );
+	EXPECT_NE( r.size(), g.size_node() );
+}
+TEST( topological_sort, easy )
+{
+	SparseGraph<> g;
+	g.resize( 2 );
+	g.AddEdge( 0, 1 );
+	auto r = topological_sort( g );
+	ASSERT_EQ( r.size(), g.size_node() );
+	EXPECT_TRUE( r[0] == 0 );
+	EXPECT_TRUE( r[1] == 1 );
+}
+TEST( topological_sort, normal )
+{
+	SparseGraph<> g;
+	const int n = 6;
+	g.resize( n );
+	g.AddEdge( 0, 1 );
+	g.AddEdge( 2, 3 );
+	g.AddEdge( 1, 4 );
+	g.AddEdge( 3, 4 );
+	g.AddEdge( 5, 4 );
+	auto r = topological_sort( g );
+	ASSERT_EQ( r.size(), g.size_node() );
+	for( auto e = g.begin_edge(); e != g.end_edge(); ++e )
+	{
+		int pos1 = -1;
+		int pos2 = -1;
+		for( int i = 0; i < n; i++ )
+		{
+			if( r[i] == e->GetSource() )
+				pos1 = i;
+			if( r[i] == e->GetDestination() )
+				pos2 = i;
+		}
+		EXPECT_TRUE( pos1 != -1 );
+		EXPECT_TRUE( pos2 != -1 );
+		EXPECT_TRUE( pos1 < pos2 );
+	}
+}

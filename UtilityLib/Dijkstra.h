@@ -20,6 +20,7 @@ protected:
 	bool visited = false;//for Dijkstra
 public:
 	friend std::vector<DistanceInfo_Dijkstra<Graph>> Dijkstra<Graph>( const Graph&, int, const GraphNodeIdx2List<Graph>& );
+
 	DistanceInfo_Dijkstra()	{}
 	const weight_type& GetDistance()const noexcept	{		return dis;	}
 	bool isReachable()const noexcept				{		return reachable;	}
