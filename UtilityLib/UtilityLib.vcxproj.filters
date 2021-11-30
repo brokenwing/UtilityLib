@@ -90,6 +90,9 @@
     <ClInclude Include="GraphTool.h">
       <Filter>Header Files\GraphTheory</Filter>
     </ClInclude>
+    <ClInclude Include="defrag_memory_resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">

@@ -182,6 +182,7 @@
     <ClInclude Include="Dijkstra.h" />
     <ClInclude Include="dynamic_priority_queue.h" />
     <ClInclude Include="GraphTool.h" />
+    <ClInclude Include="defrag_memory_resource.h" />
     <ClInclude Include="SparseGraph.h" />
     <ClInclude Include="RSA.h" />
     <ClInclude Include="RawULongInt.h" />
