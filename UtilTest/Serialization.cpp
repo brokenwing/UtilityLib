@@ -86,7 +86,7 @@ TEST( Serialization, fstream )
 	std::ifstream in( "tmp.dat", std::ios::binary );
 	to.unserialize( in );
 	in.close();
-
+	
 	EXPECT_EQ( from.a, to.a );
 	EXPECT_EQ( from.b, to.b );
 	EXPECT_EQ( from.c, to.c );
@@ -274,4 +274,80 @@ TEST( Serialization, recursive_simple_entity )
 	
 	EXPECT_EQ( from.a, to.a );
 	EXPECT_EQ( from.b, to.b );
+}
+
+TEST( Serialization, recursive_inherit )
+{
+	struct A
+	{
+		int a = -1;
+		AddSimpleEntitySerialization
+	};
+	struct B :public A
+	{
+		int b = 1;
+	};
+	B from, to;
+	to.a = 0;
+	to.b = 0;
+	
+	std::ostringstream out;
+	serialization::serialize_recursively(from, out );
+	
+	auto s = out.str();
+	std::istringstream in( s );
+	serialization::unserialize_recursively(to, in );
+	
+	EXPECT_EQ( from.a, to.a );
+	EXPECT_EQ( from.b, to.b );
+}
+TEST( Serialization, recursive_part_inherit )
+{
+	struct A
+	{
+		int a = -1;
+		AddSimpleEntitySerialization
+	};
+	struct B :public A
+	{
+		int b = 1;
+	};
+	B from, to;
+	to.a = 0;
+	to.b = 0;
+	
+	std::ostringstream out;
+	serialization::serialize_recursively<A>(from, out );
+	
+	auto s = out.str();
+	std::istringstream in( s );
+	serialization::unserialize_recursively<A>(to, in );
+	
+	EXPECT_EQ( from.a, to.a );
+	EXPECT_EQ( 0, to.b );
+}
+TEST( Serialization, recursive_part_inherit_B )
+{
+	struct A
+	{
+		int a = -1;
+	};
+	struct B :public A
+	{
+		int b = 1;
+		AddComplexEntitySerialization(b)
+	};
+	B from, to;
+	to.a = 0;
+	to.b = 0;
+	
+	std::ostringstream out;
+	serialization::serialize_recursively(from, out );
+	
+	auto s = out.str();
+	std::istringstream in( s );
+	serialization::unserialize_recursively(to, in );
+	
+	EXPECT_EQ( from.b, to.b );
+	EXPECT_EQ( 0, to.a );
 }

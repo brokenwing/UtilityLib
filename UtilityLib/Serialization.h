@@ -1,5 +1,7 @@
 #pragma once
 #include "pch.h"
+#include <iostream>
+#include <tuple>
 
 /*
 * Ignore any undefinded type
@@ -7,7 +9,7 @@
 * 1. simple type (ex. int,double,...)
 * 2. string/wstring
 * 3. std::array
-* 4. static lengh 1D-array (ex. char[10], int[10])
+* 4. static length 1D-array (ex. char[10], int[10])
 * 5. serialize/unserialize overload
 * 6. vector
 * 7. pair
@@ -20,10 +22,10 @@
 */
 
 #define AddSimpleEntitySerialization public:\
-using serialization_type = simple_entity;
+using serialization_type = Util::Serialization::simple_entity;
 
 #define AddComplexEntitySerialization(...) public:\
-using serialization_type = complex_entity;\
+using serialization_type = Util::Serialization::complex_entity;\
 auto make_tuple()const	{	return std::forward_as_tuple(__VA_ARGS__);	}\
 auto make_tuple()	{	return std::forward_as_tuple(__VA_ARGS__);	}\
 
@@ -67,7 +69,7 @@ public:
 	using ostream_type = _ostream;
 
 	virtual int serialize( ostream_type& out )const = 0;
-	virtual int unserialize( istream_type& out ) = 0;
+	virtual int unserialize( istream_type& in ) = 0;
 };
 
 class serialization :public basic_serialization<std::istream, std::ostream>
@@ -124,7 +126,16 @@ public:
 		else if constexpr( complex_entity_type<T> )
 			serialize_recursively( val.make_tuple(), out );
 	}
-
+	
+	template <typename ...Types>
+	static void unserialize_recursively( const std::tuple<Types&...>& val, istream_type& in )
+	{
+		if constexpr( !std::same_as<std::tuple<Types...>, std::tuple<>> )
+		{
+			unserialize_recursively( std::get<0>( val ), in );
+			unserialize_recursively( val._Get_rest(), in );
+		}
+	}
 	template <typename T>
 	static void unserialize_recursively( T& val, istream_type& in )
 	{
@@ -176,8 +187,7 @@ public:
 			unserialize_entity( val, in );
 		else if constexpr( complex_entity_type<T> )
 		{
-			auto tmp = val.make_tuple();
-			unserialize_recursively( tmp, in );
+			unserialize_recursively( val.make_tuple(), in );
 		}
 	}
 
