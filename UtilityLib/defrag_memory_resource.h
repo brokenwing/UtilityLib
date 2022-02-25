@@ -65,6 +65,7 @@ public:
 	template<typename Container>
 	void defragging( Container& val )
 	{
+		assert( val.get_allocator().resource() == this );
 		if( val.get_allocator().resource() == this )
 		{
 			switch_buffer();
@@ -72,6 +73,22 @@ public:
 			tmp.swap( val );
 			val = tmp;
 			switch_buffer();
+		}
+	}
+	//Assume val contains all memory that is in current buffer
+	template<typename Container>
+	void defragging_all( Container& val )
+	{
+		assert( val.get_allocator().resource() == this );
+		if( val.get_allocator().resource() == this )
+		{
+			auto len = get_allocated_size_history();
+			switch_buffer();
+			reset_buffer( len );//might be large than needs
+			switch_buffer();
+			defragging( val );
+			switch_buffer();
+			release_other_buffer();
 		}
 	}
 };

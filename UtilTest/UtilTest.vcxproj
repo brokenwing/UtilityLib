@@ -47,6 +47,7 @@
     <ClCompile Include="BinaryIndexedTree.cpp" />
     <ClCompile Include="dynamic_priority_queue.cpp" />
     <ClCompile Include="defrag_memory_resource.cpp" />
+    <ClCompile Include="Serialization.cpp" />
     <ClCompile Include="ULongInt.cpp" />
     <ClCompile Include="VecUtil.cpp" />
     <ClCompile Include="test.cpp" />

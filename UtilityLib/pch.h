@@ -20,6 +20,7 @@
 #include <optional>
 #include <functional>
 #include <tuple>
+#include <array>
 
 #undef min
 #undef max

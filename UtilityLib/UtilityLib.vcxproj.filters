@@ -93,6 +93,9 @@
     <ClInclude Include="defrag_memory_resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Serialization.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
