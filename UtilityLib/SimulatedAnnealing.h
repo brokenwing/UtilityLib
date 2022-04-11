@@ -66,12 +66,12 @@ private:
 	size_t m_sample_size = 300;//size of sample for estimating Tmax
 	tCoolDownType m_temperature_calc_type = tCoolDownType::kExponential;
 	
-	LFA::deque<LogInfo> m_logList;
+	std::deque<LogInfo> m_logList;
 	std::int64_t m_max_log_size = 0;
 	std::int64_t m_iteration_per_log = 0;
 	int m_collect_flag = (int)tState::kAcceptSolution | (int)tState::kFinish;
 	
-	typedef LFA::deque<std::pair<double, double>> SampleListType;
+	typedef std::deque<std::pair<double, double>> SampleListType;
 	bool m_is_initialized_T = false;
 	double m_p0 = 0.9;
 	int m_cnt_recalcT = 0;
@@ -101,6 +101,7 @@ public:
 	decltype( rng )& GetRNG()const noexcept	{		return rng;	}
 	const decltype( m_logList )& GetLogList()const noexcept	{		return m_logList;	}
 	double GetElapsedTime()const	{		return global_time.GetTime();	}
+	decltype( m_iteration )GetIteration()const noexcept	{		return m_iteration;	}
 
 	bool Execute( unsigned int seed = 0 );
 
@@ -111,7 +112,6 @@ protected:
 	virtual double CalcScore( const SolutionType& sol )const = 0;
 	virtual void Hook( const tState state )	{}
 	
-	decltype( m_iteration )GetIteration()const noexcept	{		return m_iteration;	}
 	double GetProgress()const noexcept	{		return m_progress;	}
 	const Solution& GetCurrSolution()const noexcept	{		return m_current;	}
 	double GetCurrScore()const noexcept	{		return m_score;	}
@@ -194,12 +194,13 @@ inline bool SimulatedAnnealing<Solution, Engine>::Execute( unsigned int seed )
 		DefaultHook( tState::kNeighbor );
 
 		//resample
-		if( ( m_cnt_recalcT > 0 || !m_is_initialized_T ) && GT( m_score, m_nxt_score ) )
+		if( ( m_cnt_recalcT > 0 || !m_is_initialized_T ) && isBetter( m_score, m_nxt_score ) )
 		{
-			m_resampleList.emplace_back( m_nxt_score, m_score );
+			m_resampleList.emplace_back( std::min( m_nxt_score, m_score ), std::max( m_nxt_score, m_score ) );
 			if( m_resampleList.size() > m_sample_size )
 				m_resampleList.pop_front();
-			if( m_resampleList.size() >= m_sample_size && ( !m_is_initialized_T || m_iteration_for_resample + m_last_sample_iteration <= m_iteration ) )
+			if( ( m_resampleList.size() >= m_sample_size || ( !m_is_initialized_T && GetProgress() > 0.1 ) )
+				&& ( !m_is_initialized_T || m_iteration_for_resample + m_last_sample_iteration <= m_iteration ) )
 			{
 				double p0 = m_p0 * ( 1 - GetProgress() );
 				auto Tnxt = EstimateTemperature( m_resampleList, std::max( p0, 0.1 ) );
@@ -288,7 +289,9 @@ bool SimulatedAnnealing<Solution, Engine>::Accept( const double old_score, const
 
 	double diff = new_score - old_score;
 	assert( !isnan( diff ) );
-	if( isBetter( diff, 0 ) )
+	if( !isMaximize )
+		diff = -diff;
+	if( GT( diff, 0 ) )
 		return true;
 
 	assert( GE( temperature, 0 ) );
@@ -361,7 +364,7 @@ inline SimulatedAnnealing<Solution, Engine>::SampleListType SimulatedAnnealing<S
 			Neighbor( start );
 			double nxt = CalcScore( start );
 			//only consider worse value
-			if( LT( nxt, cur ) )
+			if( isBetter( cur, nxt ) )
 			{
 				sample.emplace_back( nxt, cur );
 				break;
