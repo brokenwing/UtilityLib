@@ -403,3 +403,37 @@ TEST( SA_TSP_sample, sa2hc )
 		std::cout << e.score << ' ';
 	std::cout << '\n';
 }
+
+namespace
+{
+class SA_parallel_sample :public SA_Sample
+{
+	virtual void ParallelNeighbor( int thread_idx, SolutionType& sol, RNGType& rng )override
+	{
+		std::uniform_int_distribution randlr( 0, 1 );
+		prev = sol;
+		bool lr = randlr( rng );
+		double step = std::max( 0.01, ( 1 - GetProgress() ) * ( 1 - GetProgress() ) * max_step );
+		sol += step * ( lr ? 1 : -1 );
+	}
+public:
+	bool run()
+	{
+		this->Config( 1, 100, true, 5 );
+		this->ConfigLog( 999, log_flag );
+		this->SetTmaxTmin( 100, 0.01 );
+		this->SetTemperatureCalcType( tCoolDownType::kExponential );
+		bool r = this->ParallelExecute( 2, 0 );//2 thread
+		opt_result = GetSolution();
+		last_pos = GetCurrSolution();
+		return r;
+	}
+};
+}
+TEST( SimulatedAnnealingParallel, DEMO_X_0 )
+{
+	SA_parallel_sample sa;
+	sa.init_x = 0;
+	ASSERT_TRUE( sa.run() );
+	EXPECT_TRUE( sa.test() );
+}

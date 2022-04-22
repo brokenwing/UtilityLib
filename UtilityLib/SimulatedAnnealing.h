@@ -3,11 +3,17 @@
 #include "CommonDef.h"
 #include "Timer.h"
 #include "Util.h"
+#include <barrier>
+#include <future>
 
 namespace Util::ORtool
 {
 template <typename Solution, typename Engine>
 class HillClimb;
+template <typename Solution, typename Engine>
+class SimulatedAnnealing;
+template <typename T>
+concept simulated_annealing_type = std::is_base_of_v<SimulatedAnnealing<typename T::SolutionType, typename T::RNGType>, T>;
 
 //maxmize score
 template <typename Solution, typename Engine = Util::RNG>
@@ -104,6 +110,37 @@ public:
 	decltype( m_iteration )GetIteration()const noexcept	{		return m_iteration;	}
 
 	bool Execute( unsigned int seed = 0 );
+	bool ParallelExecute( const int n_thread, unsigned int seed = 0 );
+	void EvaluateStep()
+	{
+		//calc T
+		std::tie( m_progress, m_cur_T ) = CalcTemperature( m_temperature_calc_type );
+		Neighbor( m_current );
+		m_nxt_score = CalcScore( m_current );
+		DefaultHook( tState::kNeighbor );
+	}
+	void ResampleUpdate();
+	void UpdateStep();
+	void UpdateStep( const SolutionType& nxt_sol )
+	{
+		if( Accept( m_score, m_nxt_score, m_cur_T ) )
+		{
+			m_current = nxt_sol;
+			//update opt
+			if( isBetter( m_nxt_score, m_opt_score ) )
+			{
+				opt_solution = nxt_sol;
+				m_opt_score = m_nxt_score;
+				DefaultHook( tState::kUpdateSolution );
+			}
+			DefaultHook( tState::kAcceptSolution );
+			m_score = m_nxt_score;
+		}
+		else
+		{
+			DefaultHook( tState::kRollBack );
+		}
+	}
 
 protected:
 	virtual void InitializeSolution( SolutionType& sol ) = 0;
@@ -111,6 +148,14 @@ protected:
 	virtual void Rollback( SolutionType& sol ) = 0;
 	virtual double CalcScore( const SolutionType& sol )const = 0;
 	virtual void Hook( const tState state )	{}
+	virtual void ParallelNeighbor( int thread_idx, SolutionType& sol, RNGType& rng )
+	{
+		Neighbor( sol );
+	}
+	virtual double ParallelCalcScore( int thread_idx, const SolutionType& sol )const
+	{
+		return CalcScore( sol );
+	}
 	
 	double GetProgress()const noexcept	{		return m_progress;	}
 	const Solution& GetCurrSolution()const noexcept	{		return m_current;	}
@@ -142,7 +187,6 @@ private:
 	//<progress ratio,T>
 	std::tuple<double, double> CalcTemperature( const tCoolDownType type )const;
 };
-
 
 //Record information after each state (or finish) iff iteration changes >= m_max_iteration/max_log_size
 template<typename Solution, typename Engine>
@@ -187,53 +231,11 @@ inline bool SimulatedAnnealing<Solution, Engine>::Execute( unsigned int seed )
 
 	while( !Terminate() )
 	{
-		//calc T
-		std::tie( m_progress, m_cur_T ) = CalcTemperature( m_temperature_calc_type );
-		Neighbor( m_current );
-		m_nxt_score = CalcScore( m_current );
-		DefaultHook( tState::kNeighbor );
-
-		//resample
-		if( ( m_cnt_recalcT > 0 || !m_is_initialized_T ) && isBetter( m_score, m_nxt_score ) )
-		{
-			m_resampleList.emplace_back( std::min( m_nxt_score, m_score ), std::max( m_nxt_score, m_score ) );
-			if( m_resampleList.size() > m_sample_size )
-				m_resampleList.pop_front();
-			if( ( m_resampleList.size() >= m_sample_size || ( !m_is_initialized_T && GetProgress() > 0.1 ) )
-				&& ( !m_is_initialized_T || m_iteration_for_resample + m_last_sample_iteration <= m_iteration ) )
-			{
-				double p0 = m_p0 * ( 1 - GetProgress() );
-				auto Tnxt = EstimateTemperature( m_resampleList, std::max( p0, 0.1 ) );
-				double t = T_max;
-				if( Tnxt.has_value() && Tnxt.value() > 3 )
-					t = Tnxt.value();
-				this->SetTmaxTmin( t, T_min );
-				m_last_sample_iteration = m_iteration;
-				m_is_initialized_T = true;
-				DefaultHook( tState::kResampleT );
-			}
-		}
-		if( Accept( m_score, m_nxt_score, m_cur_T ) )
-		{
-			//update opt
-			if( isBetter( m_nxt_score, m_opt_score ) )
-			{
-				opt_solution = m_current;
-				m_opt_score = m_nxt_score;
-				DefaultHook( tState::kUpdateSolution );
-			}
-			DefaultHook( tState::kAcceptSolution );
-			m_score = m_nxt_score;
-		}
-		else
-		{
-			//roll back
-			Rollback( m_current );
-			DefaultHook( tState::kRollBack );
-		}
-
-		++m_iteration;
+		EvaluateStep();
+		ResampleUpdate();
+		UpdateStep();
 	}
+
 	DefaultHook( tState::kFinish );
 
 	RELEASE_VER_CATCH_START( const std::exception& );
@@ -243,6 +245,128 @@ inline bool SimulatedAnnealing<Solution, Engine>::Execute( unsigned int seed )
 	RELEASE_VER_CATCH_END;
 
 	return true;
+}
+
+//ParallelNeighbor(...) and ParallelCalcScore(...) must be parallel executable
+//tState::kNeighbor won't update cursolution (todo)
+//no rollback
+template<typename Solution, typename Engine>
+inline bool SimulatedAnnealing<Solution, Engine>::ParallelExecute( const int n_thread, unsigned int seed )
+{
+	if( n_thread < 1 )
+		return false;
+
+	rng = RNGType( seed );
+	struct TempSolution
+	{
+		int idx = -1;
+		double score = 0;
+		RNGType rng;
+		Solution sol;
+	};
+	std::vector<TempSolution> solQ;
+	solQ.resize( n_thread );
+	for( int idx = 0; auto & e : solQ )
+	{
+		e.idx = idx++;
+		e.rng = RNGType( rng() );
+	}
+	Initialize();
+	DefaultHook( tState::kInit );
+
+	bool stop = Terminate();
+	std::barrier guard( n_thread, [&] ()noexcept
+	{
+		auto best = std::min_element( solQ.begin(), solQ.end(), [this] ( auto& a, auto& b )
+		{
+			return this->isBetter( a.score, b.score );
+		} );
+
+		std::tie( m_progress, m_cur_T ) = CalcTemperature( m_temperature_calc_type );
+		//m_current = sol;
+		m_nxt_score = best->score;
+		DefaultHook( tState::kNeighbor );
+
+		ResampleUpdate();
+		UpdateStep( best->sol );
+
+		++m_iteration;
+
+		stop = Terminate();
+	} );
+	auto task = [&] ( const int idx )->void
+	{
+		TempSolution& e = solQ[idx];
+		while( !stop )
+		{
+			e.score = 0;
+			e.sol = this->GetCurrSolution();
+			ParallelNeighbor( e.idx, e.sol, e.rng );
+			e.score = ParallelCalcScore( e.idx, e.sol );
+			guard.arrive_and_wait();
+		}
+	};
+	
+	std::vector<std::future<void>> thread_pool;
+	thread_pool.reserve( n_thread );
+	for( int i = 0; i < n_thread; i++ )
+		thread_pool.emplace_back( std::async( task, i ) );
+
+	for( auto& e : thread_pool )
+		e.wait();
+
+	DefaultHook( tState::kFinish );
+
+	return true;
+}
+
+template<typename Solution, typename Engine>
+inline void SimulatedAnnealing<Solution, Engine>::ResampleUpdate()
+{
+	if( ( m_cnt_recalcT > 0 || !m_is_initialized_T ) && isBetter( m_score, m_nxt_score ) )
+	{
+		m_resampleList.emplace_back( std::min( m_nxt_score, m_score ), std::max( m_nxt_score, m_score ) );
+		if( m_resampleList.size() > m_sample_size )
+			m_resampleList.pop_front();
+		if( ( m_resampleList.size() >= m_sample_size || ( !m_is_initialized_T && GetProgress() > 0.1 ) )
+			&& ( !m_is_initialized_T || m_iteration_for_resample + m_last_sample_iteration <= m_iteration ) )
+		{
+			double p0 = m_p0 * ( 1 - GetProgress() );
+			auto Tnxt = EstimateTemperature( m_resampleList, std::max( p0, 0.1 ) );
+			double t = T_max;
+			if( Tnxt.has_value() && Tnxt.value() > 3 )
+				t = Tnxt.value();
+			this->SetTmaxTmin( t, T_min );
+			m_last_sample_iteration = m_iteration;
+			m_is_initialized_T = true;
+			DefaultHook( tState::kResampleT );
+		}
+	}
+}
+
+template<typename Solution, typename Engine>
+inline void SimulatedAnnealing<Solution, Engine>::UpdateStep()
+{
+	if( Accept( m_score, m_nxt_score, m_cur_T ) )
+	{
+		//update opt
+		if( isBetter( m_nxt_score, m_opt_score ) )
+		{
+			opt_solution = m_current;
+			m_opt_score = m_nxt_score;
+			DefaultHook( tState::kUpdateSolution );
+		}
+		DefaultHook( tState::kAcceptSolution );
+		m_score = m_nxt_score;
+	}
+	else
+	{
+		//roll back
+		Rollback( m_current );
+		DefaultHook( tState::kRollBack );
+	}
+
+	++m_iteration;
 }
 
 template<typename Solution, typename Engine>
