@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <string>
 #include <sstream>
+#include "low_fragmentation_allocator.h"
 
 #define FOR(i,a,b) for(int i=(a); (i)<(b); (i)++)
 //#define FOR(i,a,b,step) for(int i=(a); (i)<(b); (i)+=(step))
@@ -28,7 +29,7 @@
 #endif
 
 template<typename T>
-using DefaultAllocator = std::allocator<T>;//LowFragmentationAllocator<T>;
+using DefaultAllocator = LFA::low_fragmentation_allocator<T>;
 
 namespace LFA
 {

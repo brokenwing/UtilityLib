@@ -16,8 +16,8 @@ public:
 		Key key = Key();
 	};
 protected:
-	LFA::vector<Node> heap;//binary heap works on idx 1,2,3,...
-	LFA::vector<int> idx2pos;
+	std::vector<Node> heap;//binary heap works on idx 1,2,3,...
+	std::vector<int> idx2pos;
 
 public:
 	dynamic_priority_queue()

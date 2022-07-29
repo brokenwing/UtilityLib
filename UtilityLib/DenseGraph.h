@@ -20,9 +20,9 @@ public:
 protected:
 	template <bool is_const_iterator>
 	class _Iterator_edge;
-	typedef LFA::vector<LFA::vector<Edge>> _Graph_matrix;
+	typedef std::vector<std::vector<Edge>> _Graph_matrix;
 
-	LFA::vector<Node> m_nodeList;
+	std::vector<Node> m_nodeList;
 	_Graph_matrix m_matrix;
 
 public:

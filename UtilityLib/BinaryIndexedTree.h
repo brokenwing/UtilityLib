@@ -16,7 +16,7 @@ class BinaryIndexedTree
 {
 private:
 	size_t n = 0;
-	LFA::vector<ValueType> arr;
+	std::vector<ValueType> arr;
 
 public:
 	BinaryIndexedTree( size_t n = 0 )

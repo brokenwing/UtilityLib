@@ -99,6 +99,9 @@
     <ClInclude Include="CFGparser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="low_fragmentation_allocator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">

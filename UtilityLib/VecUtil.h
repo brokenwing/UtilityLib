@@ -122,9 +122,9 @@ inline void SubVec( Iter_1 vec_begin, Iter_2 idx_begin, Iter_1 result_begin, siz
 
 //Merge same element into <elm,count>
 template <typename T, typename Iter>
-inline LFA::vector<std::pair<T, int>> VecCount2pair( Iter begin, Iter end )
+inline std::vector<std::pair<T, int>> VecCount2pair( Iter begin, Iter end )
 {
-	LFA::vector<std::pair<T, int>> ret;
+	std::vector<std::pair<T, int>> ret;
 	ret.reserve( std::distance( begin, end ) );
 	for( auto i = begin; i != end; ++i )
 		if( ret.empty() || *i != ret.back().first )
@@ -135,9 +135,9 @@ inline LFA::vector<std::pair<T, int>> VecCount2pair( Iter begin, Iter end )
 }
 //Merge same element into count list
 template <typename Iter, typename Comparator = std::equal_to<>>
-inline LFA::vector<int> VecCount( Iter begin, Iter end, const Comparator is_eq = std::equal_to<>() )
+inline std::vector<int> VecCount( Iter begin, Iter end, const Comparator is_eq = std::equal_to<>() )
 {
-	LFA::vector<int> ret;
+	std::vector<int> ret;
 	ret.reserve( std::distance( begin, end ) );
 	auto before = begin;
 	for( auto i = begin; i != end; ++i )
@@ -164,9 +164,9 @@ inline size_t VecHash( Iter begin, Iter end )
 	return val;
 }
 
-inline LFA::vector<int> GenerateVec( int n, int st = 0, int step = 1 )
+inline std::vector<int> GenerateVec( int n, int st = 0, int step = 1 )
 {
-	LFA::vector<int> ret;
+	std::vector<int> ret;
 	ret.reserve( n );
 	FOR( i, 0, n )
 		ret.emplace_back( st + i * step );

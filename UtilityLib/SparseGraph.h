@@ -18,8 +18,8 @@ public:
 	using has_inverse_edge		= std::true_type;
 
 protected:
-	LFA::vector<Node> m_nodeList;
-	LFA::vector<Edge> m_edgeList;
+	std::vector<Node> m_nodeList;
+	std::vector<Edge> m_edgeList;
 
 public:
 	using iterator_node = typename decltype( m_nodeList )::iterator;
