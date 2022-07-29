@@ -6,14 +6,7 @@
 
 namespace
 {
-std::vector<int> string2vector( const std::string& s )
-{
-	std::vector<int> text;
-	text.reserve( s.size() );
-	for( auto e : s )
-		text.emplace_back( e );
-	return text;
-};
+using CFG::CFGtool::string2vector;
 }
 
 TEST( Grammar, ok )
@@ -50,6 +43,23 @@ TEST( Grammar, undefinded_nonTerminal )
 	g.AddNonTerminal( StartNonTerminal, { any,undef } );
 	auto r = g.Initialize();
 	EXPECT_EQ( r, Grammar<>::tError::kUndefindedNonTerminal );
+}
+TEST( Grammar, user_type )
+{
+	using namespace CFG;
+
+	Grammar<int> g;
+	g.AddASCIIAsTerminal();
+	int any = 1;
+	int sth = 2;
+	g.AddTerminalList( sth, { 'x','y' }, { .user_data = 1 } );
+	g.AddTerminalWord( any, { 'x','y' }, { .user_data = 2 } );
+	g.AddNonTerminal( any, { g.toTerminal( 'y' ) }, { .user_data = 3 } );
+	g.AddNonTerminal( StartNonTerminal, { any } );
+	g.AddNonTerminal( StartNonTerminal, { sth } );
+
+	auto r = g.Initialize();
+	EXPECT_EQ( r, Grammar<int>::tError::kSuc );
 }
 
 TEST( CFGparser, parse_expr )
@@ -319,6 +329,7 @@ std::pair<bool, std::string> ParseAndPrintPostorderExpr( const std::string& s, b
 	bool x = cfg.Parse( string2vector( s ) );
 	if( !x )
 		return { false,"" };
+	//std::cout << cfg.toExprTreeString( cfg.GetRoot() ) << '\n';
 	return { x,CFGtool::toPostorderExprString( cfg, print_target ) };
 }
 }
@@ -528,6 +539,7 @@ TEST( CFGsample, func )
 	EXPECT_EQ( ParseAndPrintPosasdtorderOFVexpr( "func(1+2)" ), "1,2,+,func," );
 	EXPECT_EQ( ParseAndPrintPosasdtorderOFVexpr( "func(1+2,3)" ), "1,2,+,3,func," );
 	EXPECT_EQ( ParseAndPrintPosasdtorderOFVexpr( "func([0])" ), "[0],func," );
+	EXPECT_EQ( ParseAndPrintPosasdtorderOFVexpr( "func(1,2,3,4)" ), "1,2,3,4,func," );
 }
 TEST( CFGsample, NGfunc )
 {

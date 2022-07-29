@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <optional>
 #include <functional>
+#include <deque>
 
 namespace CFG
 {
@@ -18,7 +19,6 @@ static constexpr int Seperator = -1;
 
 static_assert( std::is_empty_v<std::tuple<>> );
 template <class UserType = std::tuple<>>
-requires std::is_class_v<UserType>
 class Grammar
 {
 public:
@@ -34,12 +34,11 @@ public:
 		std::string desc = "";//debug
 		bool isPrint = true;
 		int mark = 0;//user mark (for convenience)
+		UserStruct user_data = UserStruct();
 	};
-	struct Rule :public InternalStruct, public ExternalStruct, public UserType
+	struct Rule :public InternalStruct, public ExternalStruct
 	{
-		Rule()
-		{}
-		Rule( const ExternalStruct& ext ) :ExternalStruct( ext )
+		Rule( const ExternalStruct& ext = ExternalStruct() ) :InternalStruct(), ExternalStruct( ext )
 		{}
 	};
 
@@ -66,31 +65,16 @@ public:
 	Grammar( const Grammar& ) = delete;
 	Grammar& operator=( const Grammar& ) = delete;
 
-	const Rule& GetRule( const int idx )const
-	{
-		return relation[idx];
-	}
-	typename decltype( dom2relation )::value_type GetRuleListByDom( const int dom )const
-	{
-		return dom2relation[dom];
-	}
-	int GetTerminalOffset()const noexcept
-	{
-		return terminal_offset;
-	}
+	const Rule& GetRule( const int idx )const												{		return relation[idx];	}
+	typename decltype( dom2relation )::value_type GetRuleListByDom( const int dom )const	{		return dom2relation[dom];	}
+	int GetTerminalOffset()const noexcept													{		return terminal_offset;	}
 	void SetTerminalOffset( const int val )noexcept
 	{
 		assert( val > 0 );
 		terminal_offset = val;
 	}
-	void SetNonTerminalString( int id, const std::string& str )
-	{
-		nonterminal2str[id] = str;
-	}
-	void SetTerminalString( int id, const std::string& str )
-	{
-		terminal2str[id] = str;
-	}
+	void SetNonTerminalString( int id, const std::string& str )	{		nonterminal2str[id] = str;	}
+	void SetTerminalString( int id, const std::string& str )	{		terminal2str[id] = str;	}
 	//use SetTerminalString to set str
 	std::string toString( std::span<const int> text, const char* missing = "?" )const
 	{
@@ -151,7 +135,7 @@ public:
 			dom2relation[dom] = decltype( dom2relation )::value_type( relation.begin() + range.first, relation.begin() + range.second + 1 );
 		//final
 		GenerateDescription();
-
+		
 		return tError::kSuc;
 	}
 	//auto split
@@ -205,10 +189,7 @@ public:
 		dom2relation.clear();
 		terminal2str.clear();
 	}
-	bool isTerminal( int val )const noexcept
-	{
-		return val >= terminal_offset;
-	}
+	bool isTerminal( int val )const noexcept	{		return val >= terminal_offset;	}
 	void AddASCIIAsTerminal()
 	{
 		for( int i = 1; i < 128; i++ )
@@ -273,14 +254,15 @@ void AddRealNumberDef( G& g, const int real_num_id, const int int_id, const int 
 	g.AddNonTerminal( real_num_id, { int_id } );
 	g.AddNonTerminal( real_num_id, { int_id,dot_id,int_id } );
 }
-//must define real number first
+//must define real number first, set int_id if real is not including int
 template <grammar_type G>
 void AddScientificNotationDef( G& g, const int scientific_notation_id, const int real_num_id, const int neg_id )
 {
-	g.AddNonTerminal( scientific_notation_id, { real_num_id,g.toTerminal( 'E' ),real_num_id } );
-	g.AddNonTerminal( scientific_notation_id, { real_num_id,g.toTerminal( 'e' ),real_num_id } );
-	g.AddNonTerminal( scientific_notation_id, { real_num_id,g.toTerminal( 'E' ),neg_id,real_num_id } );
-	g.AddNonTerminal( scientific_notation_id, { real_num_id,g.toTerminal( 'e' ),neg_id,real_num_id } );
+	for( char ch : {'e', 'E'} )
+	{
+		g.AddNonTerminal( scientific_notation_id, { real_num_id,g.toTerminal( ch ),real_num_id } );
+		g.AddNonTerminal( scientific_notation_id, { real_num_id,g.toTerminal( ch ),neg_id,real_num_id } );
+	}
 }
 //NG: start from number
 template <grammar_type G>
@@ -385,6 +367,7 @@ private:
 	struct ExprNode:public FullState
 	{
 		int idx = -1;
+		int parent = -1;//ambiguous when parsing, need to calc after parsing from root with GetChildList
 		int left = -1;//child of current element
 		int right = -1;//right->right->... to visit each element in dest in BW order
 
@@ -406,18 +389,10 @@ public:
 	~CFGparser()
 	{}
 
-	const Grammar& GetGrammar()const
-	{
-		return grammar;
-	}
-	void SetGrammar( const Grammar& g )
-	{
-		grammar.DeepCopy( g );
-	}
-	void SetText( const decltype( text )& val )
-	{
-		text = val;
-	}
+	const Grammar& GetGrammar()const			{		return grammar;	}
+	const decltype( text )& GetText()const		{		return text;	}
+	void SetGrammar( const Grammar& g )			{		grammar.DeepCopy( g );	}
+	void SetText( const decltype( text )& val )	{		text = val;	}
 	void clear()
 	{
 		dp.clear();
@@ -495,7 +470,8 @@ public:
 				}
 			}
 		}
-		return dp[text.size()].used.find( GetFinalState() ) != dp[text.size()].used.end();
+		bool r = CalcParent();
+		return r && dp[text.size()].used.find( GetFinalState() ) != dp[text.size()].used.end();
 	}
 
 	std::span<const int> GetText( const FullState& p )const
@@ -511,10 +487,8 @@ public:
 		auto r = state2idx.find( FullState( (int)text.size(), GetFinalState() ) );
 		return ( r == state2idx.end() ) ? -1 : r->second;
 	}
-	const FullState& GetNode( int idx )const
-	{
-		return expressionDAG[idx];
-	}
+	const FullState& GetNode( int idx )const	{		return expressionDAG[idx];	}
+	int GetParent( int idx )const				{		return expressionDAG[idx].parent;	}
 	//from left to right in dest
 	std::vector<int> GetChildList( int idx )const
 	{
@@ -540,7 +514,7 @@ public:
 	void toExprTreeString( std::ostringstream& ss, const int root, const int deep = 1 )const
 	{
 		auto& me = expressionDAG[root];
-		ss << me.idx << ": " << grammar.GetRule( me.rule_idx ).desc << " -> " << grammar.toString( GetText( me ) ) << '\n';
+		ss << me.idx << '(' << me.parent << ')' << ": " << grammar.GetRule( me.rule_idx ).desc << " -> " << grammar.toString( GetText( me ) ) << '\n';
 		for( int p = root; p != -1; p = expressionDAG[p].GetNextNodeIdx() )
 		{
 			const int child = expressionDAG[p].GetChildIdx();
@@ -553,6 +527,29 @@ public:
 	}
 
 private:
+	bool CalcParent()
+	{
+		const int root = GetRoot();
+		if( root == -1 )
+			return false;
+
+		std::set<int> visit = { root };
+		std::deque<int> q = { root };
+
+		while( !q.empty() )
+		{
+			expressionDAG[q.front()].parent;
+			for( int idx : GetChildList( q.front() ) )
+			{
+				expressionDAG[idx].parent = q.front();
+				q.emplace_back( idx );
+				if( !visit.insert( idx ).second )
+					return false;
+			}
+			q.pop_front();
+		}
+		return true;
+	}
 	State GetFinalState()const
 	{
 		State done;
@@ -610,20 +607,31 @@ concept cfg_type = std::is_base_of_v<CFGparser<typename T::Grammar>, T>;
 
 namespace CFGtool
 {
+inline std::vector<int> string2vector( const std::string& s )
+{
+	std::vector<int> text;
+	text.reserve( s.size() );
+	for( auto e : s )
+		text.emplace_back( e );
+	return text;
+};
+
 constexpr int ForceExpandMark = -1;//do not print this node
 constexpr int UnaryOperatorExpandMark = 1;
 constexpr int BinaryOperatorExpandMark = 2;
 constexpr int FunctionExpandMark = 3;
+//seq of node index
 template <cfg_type Parser>
-std::string toPostorderExprString( const Parser& cfg, const std::set<int>& targetNT )
+std::vector<int> toPostorderSequence( const Parser& cfg, const std::set<int>& targetNT )
 {
 	if( cfg.GetRoot() == -1 )
-		return "";
+		return {};
 	auto& g = cfg.GetGrammar();
 	std::set<int> visited;//loop check
-	std::ostringstream ss;
+	std::vector<int> seq;
+	seq.reserve( cfg.GetText().size() );
 	bool isLoop = false;
-	std::function<void( int )> postorderExpand = nullptr;
+	std::function<void( const int )> postorderExpand = nullptr;
 	postorderExpand = [&] ( const int root )->void
 	{
 		if( isLoop )
@@ -636,7 +644,7 @@ std::string toPostorderExprString( const Parser& cfg, const std::set<int>& targe
 		auto& me = cfg.GetNode( root );
 		if( auto& rule = g.GetRule( me.rule_idx ); rule.mark != ForceExpandMark && targetNT.find( rule.dom ) != targetNT.end() )
 		{
-			ss << g.toString( cfg.GetText( me ) ) << ',';
+			seq.emplace_back( root );
 			return;
 		}
 
@@ -674,8 +682,21 @@ std::string toPostorderExprString( const Parser& cfg, const std::set<int>& targe
 	};
 
 	postorderExpand( cfg.GetRoot() );
-	return isLoop ? "" : ss.str();
+	if( isLoop )
+		seq.clear();
+	seq.shrink_to_fit();
+	return seq;
 }
+template <cfg_type Parser>
+std::string toPostorderExprString( const Parser& cfg, const std::set<int>& targetNT )
+{
+	auto q = toPostorderSequence( cfg, targetNT );
+	std::ostringstream ss;
+	for( int idx : q )
+		ss << cfg.GetGrammar().toString( cfg.GetText( cfg.GetNode( idx ) ) ) << ',';
+	return ss.str();
+}
+
 }
 
 }
