@@ -282,6 +282,22 @@ void AddIDdef( G& g, const int id, const int char_id, const int num_id, bool is_
 	g.AddNonTerminal( id, { char_id,num_id,id } );
 }
 
+//rawstr has quotes, single character quotes is not allowed in string
+//quotes (more than 1 character) inside string is undefined behavior
+//empty string ok
+template <grammar_type G>
+void AddStringDef( G& g, const int rawstr_id, const int str_id, const int left_quote_id, const int right_quote_id, const int char_id, bool is_char_defined = false )
+{
+	if( !is_char_defined )
+		for( int i = 1; i < 128; i++ )
+			if( g.toTerminal( i ) != left_quote_id && g.toTerminal( i ) != right_quote_id )
+				g.AddTerminalList( char_id, { i } );
+	g.AddNonTerminal( rawstr_id, { left_quote_id,str_id,right_quote_id } );
+	g.AddNonTerminal( rawstr_id, { left_quote_id,right_quote_id } );
+	g.AddNonTerminal( str_id, { char_id } );
+	g.AddNonTerminal( str_id, { char_id,str_id } );
+}
+
 //ref http://www.cs.ecu.edu/karl/5220/spr16/Notes/CFG/precedence.html
 struct ExprPriorityConfig
 {

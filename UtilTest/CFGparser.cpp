@@ -270,6 +270,42 @@ TEST( CFGgrammarTemplate, parse_id )
 	EXPECT_FALSE( cfg.Parse( string2vector( "123zxc" ) ) );
 }
 
+TEST( CFGgrammarTemplate, parse_string )
+{
+	using namespace CFG;
+	Grammar g;
+	g.AddASCIIAsTerminal();
+
+	const int ch = 1;
+	const int str = 2;
+	const int rawstr = 3;
+	const int quote = g.toTerminal( '"' );
+
+	
+	g.SetNonTerminalString( ch, "Char" );
+	g.SetNonTerminalString( str, "Str" );
+	g.SetNonTerminalString( rawstr, "RawStr" );
+	g.SetNonTerminalString( quote, "Quote" );
+
+	GrammarTemplate::AddStringDef( g, rawstr, str, quote, quote, ch );
+
+	g.AddNonTerminal( StartNonTerminal, { rawstr } );
+
+	auto r = g.Initialize();
+	ASSERT_EQ( r, Grammar<>::tError::kSuc );
+
+	CFGparser<> cfg;
+	cfg.SetGrammar( g );
+	
+	EXPECT_TRUE( cfg.Parse( string2vector( "\"abc\"" ) ) );//"abc"
+	EXPECT_TRUE( cfg.Parse( string2vector( "\"x y z\"" ) ) );
+	EXPECT_TRUE( cfg.Parse( string2vector( "\"\"" ) ) );
+	EXPECT_FALSE( cfg.Parse( string2vector( "abc" ) ) );
+	EXPECT_FALSE( cfg.Parse( string2vector( "xx\"xx" ) ) );
+	EXPECT_FALSE( cfg.Parse( string2vector( "\"\"\"" ) ) );
+	EXPECT_FALSE( cfg.Parse( string2vector( "xx\"xx\"" ) ) );
+}
+
 namespace
 {
 std::pair<bool, std::string> ParseAndPrintPostorderExpr( const std::string& s, bool isPrint = false )
