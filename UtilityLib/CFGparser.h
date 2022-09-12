@@ -11,6 +11,7 @@
 #include <optional>
 #include <functional>
 #include <deque>
+#include <format>
 
 namespace CFG
 {
@@ -380,7 +381,7 @@ private:
 	* Expr.right.right==Expr->ABCD (finish B)
 	* Expr.right.right.left==B
 	*/
-	struct ExprNode:public FullState
+	struct ExprNode :public FullState
 	{
 		int idx = -1;
 		int parent = -1;//ambiguous when parsing, need to calc after parsing from root with GetChildList
@@ -540,6 +541,130 @@ public:
 				toExprTreeString( ss, child, deep + 1 );
 			}
 		}
+	}
+
+	enum struct tError
+	{
+		kNoError,
+		kEmptyText,
+		kMidState,
+		kFinalState,//match whole string but no valid start
+		kUnknown,
+	};
+	struct ErrorInfo
+	{
+		tError type = tError::kUnknown;
+		int pos = -1;//start from 1
+		std::string ch;
+		std::string text;
+		std::string expect_rawstr;
+		std::string usr_msg;
+		std::vector<std::string> debug_msg;//each state of dp[pos]
+	};
+	ErrorInfo ParseErrorReport()const
+	{
+		if( text.empty() )
+			return ErrorInfo{ .type = tError::kEmptyText };
+
+		if( GetRoot() == -1 )
+		{
+			ErrorInfo ret;
+
+			assert( dp.size() == text.size() + 1 );
+			int ng_pos = static_cast<int>( dp.size() ) - 1;
+			while( ng_pos > 0 && dp[ng_pos].q.empty() )
+				--ng_pos;
+			ret.pos = ng_pos + 1;
+
+			if( ng_pos < text.size() && ng_pos >= 0 )
+			{
+				int ch[1] = { text[ng_pos] };
+				ret.ch = grammar.toString( ch );
+			}
+			else
+				ret.ch = "End";
+			ret.text = grammar.toString( GetText() );
+			ret.type = ( ng_pos == text.size() ) ? tError::kFinalState : tError::kMidState;
+
+			std::vector<int> expect_charlist;
+			ret.debug_msg.reserve( dp[ng_pos].q.size() );
+			for( auto it = dp[ng_pos].q.rbegin(); it != dp[ng_pos].q.rend(); ++it )
+			{
+				int state = -1;//1-complete, 2-read char, 3-predict
+				std::string state_str;
+				if( isComplete( *it ) )
+				{
+					state = 1;
+					state_str = "complete";
+				}
+				else if( grammar.isTerminal( GetNextSymbol( *it ) ) )
+				{
+					state = 2;
+					state_str = "expect";
+				}
+				else
+				{
+					state = 3;
+					state_str = "predict";
+				}
+
+				if( state == 2 )
+					expect_charlist.emplace_back( GetNextSymbol( *it ) - grammar.GetTerminalOffset() );
+				const auto& cur_rule_desc = grammar.GetRule( it->rule_idx ).desc;
+				std::span<const int> match_text( GetText().begin() + it->pos, GetText().begin() + ng_pos );
+				auto match_str = grammar.toString( match_text );
+				if( match_str.empty() )
+					match_str = "nothing";
+				else
+					match_str = "'" + match_str + "'";
+
+				ret.debug_msg.emplace_back( std::format( "Rule {}:{} is {}, matches {} with {} symbols.", it->rule_idx, cur_rule_desc, state_str, match_str, it->offset ) );
+			}
+			//remove dup
+			std::sort( expect_charlist.begin(), expect_charlist.end() );
+			expect_charlist.erase( std::unique( expect_charlist.begin(), expect_charlist.end() ), expect_charlist.end() );
+
+			std::vector<std::string> expect_strlist;
+			expect_strlist.reserve( expect_charlist.size() );
+			for( int ch : expect_charlist )
+			{
+				int tmp[1] = { ch };
+				expect_strlist.emplace_back( grammar.toString( tmp ) );
+			}
+			std::sort( expect_strlist.begin(), expect_strlist.end() );
+
+			std::string expect_str, special_str;
+			expect_str.reserve( expect_strlist.size() );
+			for( auto& s : expect_strlist )
+				expect_str += s;
+			ret.expect_rawstr = expect_str;
+			//compress expect_str
+			if( auto pos = expect_str.find( "0123456789" ); pos != std::string::npos )
+			{
+				expect_str.erase( pos, 10 );
+				special_str += "[0-9]";
+			}
+			if( auto pos = expect_str.find( "abcdefghijklmnopqrstuvwxyz" ); pos != std::string::npos )
+			{
+				expect_str.erase( pos, 26 );
+				special_str += "[a-z]";
+			}
+			if( auto pos = expect_str.find( "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ); pos != std::string::npos )
+			{
+				expect_str.erase( pos, 26 );
+				special_str += "[A-Z]";
+			}
+			auto tmp = expect_str;
+			expect_str = special_str;
+			for( char ch : tmp )
+				expect_str += std::format( "{}'{}'", expect_str.empty() ? "" : ",", ch );
+
+			ret.usr_msg = std::format( "Syntax Error: unexpected '{}' at column {}, expect {}.", ret.ch, ret.pos, expect_str );
+
+			return ret;
+		}
+		else
+			return ErrorInfo{ .type = tError::kNoError };
 	}
 
 private:

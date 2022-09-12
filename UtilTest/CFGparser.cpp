@@ -308,7 +308,7 @@ TEST( CFGgrammarTemplate, parse_string )
 
 namespace
 {
-std::pair<bool, std::string> ParseAndPrintPostorderExpr( const std::string& s, bool isPrint = false )
+std::pair<bool, std::string> ParseAndPrintPostorderExpr( const std::string& s, CFG::CFGparser<>::ErrorInfo* err = nullptr )
 {
 	using namespace CFG;
 	Grammar g;
@@ -363,6 +363,8 @@ std::pair<bool, std::string> ParseAndPrintPostorderExpr( const std::string& s, b
 	std::set<int> print_target = { num,ope_level_1,ope_level_2,ope_level_3,ope_level_4 };
 	
 	bool x = cfg.Parse( string2vector( s ) );
+	if( err )
+		*err = cfg.ParseErrorReport();
 	if( !x )
 		return { false,"" };
 	//std::cout << cfg.toExprTreeString( cfg.GetRoot() ) << '\n';
@@ -469,7 +471,7 @@ TEST( CFGparser_operator_priority, neg_exponentiation_parentheses )
 
 namespace
 {
-std::string ParseAndPrintPosasdtorderOFVexpr( const std::string& s )
+std::string ParseAndPrintPosasdtorderOFVexpr( const std::string& s, CFG::CFGparser<>::ErrorInfo* err = nullptr )
 {
 	using namespace CFG;
 
@@ -549,6 +551,8 @@ std::string ParseAndPrintPosasdtorderOFVexpr( const std::string& s )
 
 	std::set<int> target = { (int)tNT::kUnit,(int)tNT::kID,(int)tNT::kOpGroup1,(int)tNT::kOpGroup2,(int)tNT::kOpGroup3,(int)tNT::kOpGroup4 };
 	cfg.Parse( string2vector( s ) );
+	if( err )
+		*err = cfg.ParseErrorReport();
 	return CFGtool::toPostorderExprString( cfg, target );
 }
 }
@@ -592,4 +596,62 @@ TEST( CFGsample, nestedfunc )
 TEST( CFGsample, realcase )
 {
 	EXPECT_EQ( ParseAndPrintPosasdtorderOFVexpr( "[0]*max(0,[t3]-[let])^2+[setup]*[1]" ), "[0],0,[t3],[let],-,max,2,^,*,[setup],[1],*,+," );
+}
+
+
+TEST( CFGerrorReport, number_expr_unexpected_char )
+{
+	CFG::CFGparser<>::ErrorInfo err;
+	auto [a, b] = ParseAndPrintPostorderExpr( "1+2x", &err );
+	ASSERT_FALSE( a );
+	EXPECT_EQ( err.ch, "x" );
+	EXPECT_EQ( err.pos, 4 );
+	EXPECT_EQ( err.text, "1+2x" );
+	EXPECT_EQ( err.type, CFG::CFGparser<>::tError::kMidState );
+	EXPECT_EQ( err.expect_rawstr, "*+-/0123456789^" );
+}
+TEST( CFGerrorReport, number_expr_parentheses_left )
+{
+	CFG::CFGparser<>::ErrorInfo err;
+	auto [a, b] = ParseAndPrintPostorderExpr( "(1+2", &err );
+	ASSERT_FALSE( a );
+	EXPECT_EQ( err.ch, "End" );
+	EXPECT_EQ( err.pos, 5 );
+	EXPECT_EQ( err.text, "(1+2" );
+	EXPECT_EQ( err.type, CFG::CFGparser<>::tError::kFinalState );
+	EXPECT_EQ( err.expect_rawstr, ")*+-/0123456789^" );
+}
+TEST( CFGerrorReport, number_expr_parentheses_right )
+{
+	CFG::CFGparser<>::ErrorInfo err;
+	auto [a, b] = ParseAndPrintPostorderExpr( "1+2)", &err );
+	ASSERT_FALSE( a );
+	EXPECT_EQ( err.ch, ")" );
+	EXPECT_EQ( err.pos, 4 );
+	EXPECT_EQ( err.text, "1+2)" );
+	EXPECT_EQ( err.type, CFG::CFGparser<>::tError::kMidState );
+	EXPECT_EQ( err.expect_rawstr, "*+-/0123456789^" );
+}
+
+TEST( CFGerrorReport, ofv_expr_parentheses_right )
+{
+	CFG::CFGparser<>::ErrorInfo err;
+	auto s = ParseAndPrintPosasdtorderOFVexpr( "1+2)", &err );
+	ASSERT_FALSE( err.type == CFG::CFGparser<>::tError::kNoError );
+	EXPECT_EQ( err.ch, ")" );
+	EXPECT_EQ( err.pos, 4 );
+	EXPECT_EQ( err.text, "1+2)" );
+	EXPECT_EQ( err.type, CFG::CFGparser<>::tError::kMidState );
+	EXPECT_EQ( err.expect_rawstr, "*+-./0123456789E^e" );
+}
+TEST( CFGerrorReport, ofv_expr_func )
+{
+	CFG::CFGparser<>::ErrorInfo err;
+	auto s = ParseAndPrintPosasdtorderOFVexpr( "f1(-)", &err );
+	ASSERT_FALSE( err.type == CFG::CFGparser<>::tError::kNoError );
+	EXPECT_EQ( err.ch, ")" );
+	EXPECT_EQ( err.pos, 5 );
+	EXPECT_EQ( err.text, "f1(-)" );
+	EXPECT_EQ( err.type, CFG::CFGparser<>::tError::kMidState );
+	EXPECT_EQ( err.expect_rawstr, "(-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ[_abcdefghijklmnopqrstuvwxyz" );
 }
