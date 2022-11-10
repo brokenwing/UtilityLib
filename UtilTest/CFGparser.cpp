@@ -471,7 +471,7 @@ TEST( CFGparser_operator_priority, neg_exponentiation_parentheses )
 
 namespace
 {
-std::string ParseAndPrintPosasdtorderOFVexpr( const std::string& s, CFG::CFGparser<>::ErrorInfo* err = nullptr )
+std::string ParseAndPrintPostorderOFVexpr( const std::string& s, CFG::CFGparser<>::ErrorInfo* err = nullptr )
 {
 	using namespace CFG;
 
@@ -559,43 +559,43 @@ std::string ParseAndPrintPosasdtorderOFVexpr( const std::string& s, CFG::CFGpars
 
 TEST( CFGsample, unit )
 {
-	EXPECT_EQ( ParseAndPrintPosasdtorderOFVexpr( "[0]" ), "[0]," );
-	EXPECT_EQ( ParseAndPrintPosasdtorderOFVexpr( "[est]" ), "[est]," );
-	EXPECT_EQ( ParseAndPrintPosasdtorderOFVexpr( "1" ), "1," );
-	EXPECT_EQ( ParseAndPrintPosasdtorderOFVexpr( "1e2" ), "1e2," );
-	EXPECT_EQ( ParseAndPrintPosasdtorderOFVexpr( "1.5" ), "1.5," );
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr( "[0]" ), "[0]," );
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr( "[est]" ), "[est]," );
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr( "1" ), "1," );
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr( "1e2" ), "1e2," );
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr( "1.5" ), "1.5," );
 }
 TEST( CFGsample, NGunit )
 {
-	EXPECT_EQ( ParseAndPrintPosasdtorderOFVexpr( "[123x]" ), "" );
-	EXPECT_EQ( ParseAndPrintPosasdtorderOFVexpr( "-" ), "" );
-	EXPECT_EQ( ParseAndPrintPosasdtorderOFVexpr( "()" ), "" );
-	EXPECT_EQ( ParseAndPrintPosasdtorderOFVexpr( "abc" ), "" );
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr( "[123x]" ), "" );
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr( "-" ), "" );
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr( "()" ), "" );
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr( "abc" ), "" );
 }
 TEST( CFGsample, func )
 {
-	EXPECT_EQ( ParseAndPrintPosasdtorderOFVexpr( "func(0)" ), "0,func," );
-	EXPECT_EQ( ParseAndPrintPosasdtorderOFVexpr( "func(0,1)" ), "0,1,func," );
-	EXPECT_EQ( ParseAndPrintPosasdtorderOFVexpr( "func(1+2)" ), "1,2,+,func," );
-	EXPECT_EQ( ParseAndPrintPosasdtorderOFVexpr( "func(1+2,3)" ), "1,2,+,3,func," );
-	EXPECT_EQ( ParseAndPrintPosasdtorderOFVexpr( "func([0])" ), "[0],func," );
-	EXPECT_EQ( ParseAndPrintPosasdtorderOFVexpr( "func(1,2,3,4)" ), "1,2,3,4,func," );
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr( "func(0)" ), "0,func," );
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr( "func(0,1)" ), "0,1,func," );
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr( "func(1+2)" ), "1,2,+,func," );
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr( "func(1+2,3)" ), "1,2,+,3,func," );
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr( "func([0])" ), "[0],func," );
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr( "func(1,2,3,4)" ), "1,2,3,4,func," );
 }
 TEST( CFGsample, NGfunc )
 {
-	EXPECT_EQ( ParseAndPrintPosasdtorderOFVexpr( "func()" ), "" );//empty function is no use here
-	EXPECT_EQ( ParseAndPrintPosasdtorderOFVexpr( "f(,)" ), "" );
-	EXPECT_EQ( ParseAndPrintPosasdtorderOFVexpr( "f(1,)" ), "" );
-	EXPECT_EQ( ParseAndPrintPosasdtorderOFVexpr( "f(" ), "" );
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr( "func()" ), "" );//empty function is no use here
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr( "f(,)" ), "" );
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr( "f(1,)" ), "" );
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr( "f(" ), "" );
 }
 TEST( CFGsample, nestedfunc )
 {
-	EXPECT_EQ( ParseAndPrintPosasdtorderOFVexpr( "f1(f2([x]))" ), "[x],f2,f1," );
-	EXPECT_EQ( ParseAndPrintPosasdtorderOFVexpr( "f1(f2(0),f3(1)+f4(2))" ), "0,f2,1,f3,2,f4,+,f1," );
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr( "f1(f2([x]))" ), "[x],f2,f1," );
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr( "f1(f2(0),f3(1)+f4(2))" ), "0,f2,1,f3,2,f4,+,f1," );
 }
 TEST( CFGsample, realcase )
 {
-	EXPECT_EQ( ParseAndPrintPosasdtorderOFVexpr( "[0]*max(0,[t3]-[let])^2+[setup]*[1]" ), "[0],0,[t3],[let],-,max,2,^,*,[setup],[1],*,+," );
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr( "[0]*max(0,[t3]-[let])^2+[setup]*[1]" ), "[0],0,[t3],[let],-,max,2,^,*,[setup],[1],*,+," );
 }
 
 
@@ -636,7 +636,7 @@ TEST( CFGerrorReport, number_expr_parentheses_right )
 TEST( CFGerrorReport, ofv_expr_parentheses_right )
 {
 	CFG::CFGparser<>::ErrorInfo err;
-	auto s = ParseAndPrintPosasdtorderOFVexpr( "1+2)", &err );
+	auto s = ParseAndPrintPostorderOFVexpr( "1+2)", &err );
 	ASSERT_FALSE( err.type == CFG::CFGparser<>::tError::kNoError );
 	EXPECT_EQ( err.ch, ")" );
 	EXPECT_EQ( err.pos, 4 );
@@ -647,7 +647,7 @@ TEST( CFGerrorReport, ofv_expr_parentheses_right )
 TEST( CFGerrorReport, ofv_expr_func )
 {
 	CFG::CFGparser<>::ErrorInfo err;
-	auto s = ParseAndPrintPosasdtorderOFVexpr( "f1(-)", &err );
+	auto s = ParseAndPrintPostorderOFVexpr( "f1(-)", &err );
 	ASSERT_FALSE( err.type == CFG::CFGparser<>::tError::kNoError );
 	EXPECT_EQ( err.ch, ")" );
 	EXPECT_EQ( err.pos, 5 );
