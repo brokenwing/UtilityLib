@@ -655,3 +655,18 @@ TEST( CFGerrorReport, ofv_expr_func )
 	EXPECT_EQ( err.type, CFG::CFGparser<>::tError::kMidState );
 	EXPECT_EQ( err.expect_rawstr, "(-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ[_abcdefghijklmnopqrstuvwxyz" );
 }
+
+TEST( CFGparser, bug_multi_startsymbol )
+{
+	using namespace CFG;
+	Grammar g;
+	g.AddASCIIAsTerminal();
+	g.AddNonTerminal( StartNonTerminal, { g.toTerminal( 'x' ) } );
+	g.AddNonTerminal( StartNonTerminal, { g.toTerminal( 'y' ) } );
+	auto r = g.Initialize();
+	ASSERT_EQ( r, Grammar<>::tError::kSuc );
+	CFGparser cfg;
+	cfg.SetGrammar( g );
+	EXPECT_TRUE( cfg.Parse( { 'x' } ) );
+	EXPECT_TRUE( cfg.Parse( { 'y' } ) );
+}

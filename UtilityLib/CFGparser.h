@@ -397,6 +397,7 @@ private:
 			return left;
 		}
 	};
+	int root = -1;
 	std::map<FullState, int> state2idx;
 	std::vector<ExprNode> expressionDAG;
 
@@ -412,6 +413,7 @@ public:
 	void SetText( const decltype( text )& val )	{		text = val;	}
 	void clear()
 	{
+		root = -1;
 		dp.clear();
 		state2idx.clear();
 		expressionDAG.clear();
@@ -487,8 +489,22 @@ public:
 				}
 			}
 		}
-		bool r = CalcParent();
-		return r && dp[text.size()].used.find( GetFinalState() ) != dp[text.size()].used.end();
+		//find root (if more than one possible S, choose any)
+		for( auto& rule : grammar.GetRuleListByDom( StartNonTerminal ) )
+		{
+			State done;
+			done.rule_idx = rule.idx;
+			done.pos = 0;
+			done.offset = static_cast<int>( rule.dest.size() );
+			if( dp[text.size()].used.find( done ) != dp[text.size()].used.end() )
+			{
+				auto r = state2idx.find( FullState( (int)text.size(), done ) );
+				root = ( r == state2idx.end() ) ? -1 : r->second;
+				break;
+			}
+		}
+		const bool r = CalcParent();
+		return r;
 	}
 
 	std::span<const int> GetText( const FullState& p )const
@@ -499,10 +515,9 @@ public:
 
 	/*after parse*/
 
-	int GetRoot()const
+	int GetRoot()const noexcept
 	{
-		auto r = state2idx.find( FullState( (int)text.size(), GetFinalState() ) );
-		return ( r == state2idx.end() ) ? -1 : r->second;
+		return root;
 	}
 	const FullState& GetNode( int idx )const	{		return expressionDAG[idx];	}
 	int GetParent( int idx )const				{		return expressionDAG[idx].parent;	}
@@ -690,14 +705,6 @@ private:
 			q.pop_front();
 		}
 		return true;
-	}
-	State GetFinalState()const
-	{
-		State done;
-		done.rule_idx = StartNonTerminal;
-		done.pos = 0;
-		done.offset = static_cast<int>( grammar.GetRule( StartNonTerminal ).dest.size() );
-		return done;
 	}
 	int GetNextSymbol( const State s )const
 	{
