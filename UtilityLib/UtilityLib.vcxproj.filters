@@ -102,6 +102,9 @@
     <ClInclude Include="low_fragmentation_allocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="RBtree.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">

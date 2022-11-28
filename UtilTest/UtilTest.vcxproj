@@ -50,6 +50,7 @@
     <ClCompile Include="defrag_memory_resource.cpp" />
     <ClCompile Include="Serialization.cpp" />
     <ClCompile Include="low_fragmentation_allocator.cpp" />
+    <ClCompile Include="RBtree.cpp" />
     <ClCompile Include="ULongInt.cpp" />
     <ClCompile Include="VecUtil.cpp" />
     <ClCompile Include="test.cpp" />
