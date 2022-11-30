@@ -19,6 +19,9 @@
     <Filter Include="Header Files\GraphTheory">
       <UniqueIdentifier>{8ee5fbf2-070a-4162-8236-a308dc5c9553}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Container">
+      <UniqueIdentifier>{57f25a91-2fba-485e-b0fe-106811448c0a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -37,9 +40,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Matrix.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="BlockList.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="VecUtil.h">
@@ -102,8 +102,17 @@
     <ClInclude Include="low_fragmentation_allocator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="BlockList.h">
+      <Filter>Header Files\Container</Filter>
+    </ClInclude>
+    <ClInclude Include="sortedvector.h">
+      <Filter>Header Files\Container</Filter>
+    </ClInclude>
     <ClInclude Include="RBtree.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Container</Filter>
+    </ClInclude>
+    <ClInclude Include="Traits.h">
+      <Filter>Header Files\Container</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
