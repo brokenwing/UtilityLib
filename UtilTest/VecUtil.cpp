@@ -254,14 +254,6 @@ TEST( VecUtil, VecCount_same )
 		EXPECT_EQ( q[i], std::make_pair( i + 1, 1 ) );
 }
 
-TEST( VecHash, check_1 )
-{
-	int n = 1;
-	int arr[] = { 1 };
-	auto r = VecHash<int>( arr, arr + n );
-	EXPECT_EQ( r, std::hash<int>()( 1 ) );
-}
-
 TEST( VecHash, check_stable )
 {
 	int n = 3;

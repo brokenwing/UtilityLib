@@ -1,5 +1,6 @@
 #pragma once
 #include "pch.h"
+#include "Traits.h"
 #include <list>
 #include <memory>
 
@@ -460,4 +461,9 @@ private:
 		}
 	}
 };
+
+
+template <typename T, typename _Comp = std::less<T>, typename _Alloc = std::allocator<T>>
+class RBtreeSet :public RBtree<_Tset_traits<T, _Comp, _Alloc, false>>
+{};
 }

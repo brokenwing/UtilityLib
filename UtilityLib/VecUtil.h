@@ -152,16 +152,22 @@ inline std::vector<int> VecCount( Iter begin, Iter end, const Comparator is_eq =
 }
 
 template <typename T, typename Iter>
-inline size_t VecHash( Iter begin, Iter end )
+unsigned int RollingHash( Iter begin, Iter end, unsigned int base = 40009, unsigned int mod = 2000000011 )
 {
-	size_t val = 0;
+	std::uint64_t val = 0;
 	std::hash<T> h;
 	for( auto i = begin; i != end; ++i )
 	{
-		size_t nxt = h( *i );
-		val = val * nxt + nxt;
+		auto nxt = h( *i ) % mod;
+		val = ( val * base + nxt ) % mod;
 	}
-	return val;
+	return static_cast<unsigned int>( val );
+}
+
+template <typename T, typename Iter>
+inline size_t VecHash( Iter begin, Iter end )
+{
+	return RollingHash<T>( begin, end );
 }
 
 inline std::vector<int> GenerateVec( int n, int st = 0, int step = 1 )
