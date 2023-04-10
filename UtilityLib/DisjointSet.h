@@ -39,6 +39,10 @@ public:
 	{
 		return m_id2parent.end();
 	}
+	std::size_t size()const
+	{
+		return m_id2parent.size();
+	}
 
 	bool isSameGroup( T A, T B )
 	{

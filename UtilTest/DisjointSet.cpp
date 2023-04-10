@@ -28,3 +28,15 @@ TEST( DisjointSet, count )
 	ds.Merge( 3,5 );
 	EXPECT_EQ( ds.Count(), 1 );
 }
+TEST( DisjointSet, size )
+{
+	DisjointSet ds;
+	ds.Merge( 1, 2 );
+	EXPECT_EQ( ds.size(), 2 );
+	ds.Merge( 3, 4 );
+	EXPECT_EQ( ds.size(), 4 );
+	ds.Merge( 5, 6 );
+	EXPECT_EQ( ds.size(), 6 );
+	ds.Merge( 1, 7 );
+	EXPECT_EQ( ds.size(), 7 );
+}
