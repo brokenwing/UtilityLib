@@ -504,3 +504,70 @@ TEST( Define, FOR_2 )
 	EXPECT_EQ( q[4], 1 );
 	EXPECT_EQ( q[5], 2 );
 }
+
+TEST( Util, AllPermutation_1 )
+{
+	int tot = 0;
+	std::vector<int> arr = { 1 };
+	AllPermutation( arr, [&] ()->void
+	{
+		++tot;
+	} );
+	EXPECT_EQ( tot, 1 );
+}
+TEST( Util, AllPermutation_2 )
+{
+	int tot = 0;
+	bool is12 = false;
+	bool is21 = false;
+	std::vector<int> arr = { 1,2 };
+	AllPermutation( arr, [&] ()->void
+	{
+		++tot;
+		if( arr[0] == 1 && arr[1] == 2 )
+			is12 = true;
+		if( arr[0] == 2 && arr[1] == 1 )
+			is21 = true;
+	} );
+	EXPECT_EQ( tot, 2 );
+	EXPECT_TRUE( is12 );
+	EXPECT_TRUE( is21 );
+}
+TEST( Util, AllPermutation_3 )
+{
+	int tot = 0;
+	bool is123 = false;
+	bool is132 = false;
+	bool is213 = false;
+	bool is231 = false;
+	bool is312 = false;
+	bool is321 = false;
+	std::vector<int> arr = { 1,2,3 };
+	AllPermutation( arr, [&] ()->void
+	{
+		++tot;
+		is123 |= arr[0] == 1 && arr[1] == 2 && arr[2] == 3;
+		is132 |= arr[0] == 1 && arr[1] == 3 && arr[2] == 2;
+		is213 |= arr[0] == 2 && arr[1] == 1 && arr[2] == 3;
+		is231 |= arr[0] == 2 && arr[1] == 3 && arr[2] == 1;
+		is312 |= arr[0] == 3 && arr[1] == 1 && arr[2] == 2;
+		is321 |= arr[0] == 3 && arr[1] == 2 && arr[2] == 1;
+	} );
+	EXPECT_EQ( tot, 6 );
+	EXPECT_TRUE( is123 );
+	EXPECT_TRUE( is132 );
+	EXPECT_TRUE( is213 );
+	EXPECT_TRUE( is231 );
+	EXPECT_TRUE( is312 );
+	EXPECT_TRUE( is321 );
+}
+TEST( Util, AllPermutation_5 )
+{
+	int tot = 0;
+	std::vector<int> arr = { 1,2,3,4,5 };
+	AllPermutation( arr, [&] ()->void
+	{
+		++tot;
+	} );
+	EXPECT_EQ( tot, 120 );
+}

@@ -97,6 +97,23 @@ struct UnorderedPairHash
 template <typename T>
 struct TupleHash;
 
+template <typename T = int, typename FuncCallback>
+void AllPermutation( std::vector<T>& arr, const FuncCallback fcb )
+{
+	const int n = (int)arr.size();
+	std::vector<int> idx;
+	idx.reserve( n );
+	for( int i = 0; i < n; i++ )
+		idx.emplace_back( i );
+	auto org = arr;
+	do
+	{
+		for( int i = 0; i < n; ++i )
+			arr[i] = org[idx[i]];
+		fcb();
+	} while( std::next_permutation( idx.begin(), idx.end() ) );
+}
+
 
 
 //
