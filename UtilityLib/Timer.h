@@ -1,8 +1,11 @@
 #pragma once
 #include <chrono>
+#include <time.h>
 
 namespace Util
 {
+#ifdef _WIN32
+
 template <typename T>
 requires std::chrono::is_clock_v<T>
 class _Timer
@@ -40,4 +43,45 @@ public:
 
 using Timer = _Timer<std::chrono::steady_clock>;
 using HighResolutionTimer = _Timer<std::chrono::high_resolution_clock>;
+#else
+
+//compatible version
+class Timer
+{
+protected:
+    std::clock_t t;
+
+public:
+    Timer()
+    {
+        SetTime();
+    }
+
+    double GetTime()const
+	{
+        return static_cast<double>( clock() - t ) / CLOCKS_PER_SEC;
+	}
+    void SetTime()
+    {
+        t = clock();
+    }
+    double GetSeconds()const
+	{
+		return GetTime();
+	}
+	std::int64_t GetMilliseconds()const
+	{
+        return GetTime() * 1000;
+	}
+	std::int64_t GetMicroseconds()const
+	{
+		return GetTime() * 1000000;
+	}
+	std::int64_t GetNanoseconds()const
+	{
+		return  GetTime() * 1000000000;
+	}
+};
+using HighResolutionTimer = Timer;
+#endif
 }
