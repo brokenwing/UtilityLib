@@ -167,6 +167,12 @@ TEST( Math, gcd )
 	EXPECT_EQ( GCD( 10, 11 ), 1 );
 	EXPECT_EQ( GCD( 17, 101 ), 1 );
 }
+TEST( Math, lcm )
+{
+	EXPECT_EQ( LCM( 1, 6 ), 6 );
+	EXPECT_EQ( LCM( 10, 11 ), 110 );
+	EXPECT_EQ( LCM( 24, 16 ), 48 );
+}
 
 TEST( Math, extgcd_1 )
 {

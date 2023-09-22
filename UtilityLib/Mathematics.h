@@ -15,6 +15,7 @@ bool MillerRabin( const LL p, int numOftest, Engine& rng );
 //exact prime check
 bool isPrime( const LL p );
 LL GCD( LL a, LL b );
+LL LCM( LL a, LL b );
 std::pair<LL, LL> ExtGCD( LL a, LL b );
 //find x s.t. a*x %n == gcd(a,n)
 extern inline LL Inverse( const LL a, const LL n );

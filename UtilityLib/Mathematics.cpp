@@ -54,6 +54,11 @@ LL GCD(LL a,LL b)
 	return GCD( b, a % b );
 }
 
+LL LCM( LL a, LL b )
+{
+	return a / GCD( a, b ) * b;
+}
+
 std::pair<LL, LL> ExtGCD( LL a, LL b )
 {
 	if( b == 0 )
