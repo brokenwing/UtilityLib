@@ -52,6 +52,7 @@
     <ClCompile Include="low_fragmentation_allocator.cpp" />
     <ClCompile Include="RBtree.cpp" />
     <ClCompile Include="sortedvector.cpp" />
+    <ClCompile Include="MultipleIndexing.cpp" />
     <ClCompile Include="ULongInt.cpp" />
     <ClCompile Include="VecUtil.cpp" />
     <ClCompile Include="test.cpp" />

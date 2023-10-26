@@ -114,6 +114,9 @@
     <ClInclude Include="Traits.h">
       <Filter>Header Files\Container</Filter>
     </ClInclude>
+    <ClInclude Include="MultipleIndexing.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
