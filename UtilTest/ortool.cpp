@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "SimulatedAnnealing.h"
 #include "HillClimb.h"
+#include "ParallelTempering.h"
 
 using namespace Util::ORtool;
 
@@ -436,4 +437,14 @@ TEST( SimulatedAnnealingParallel, DEMO_X_0 )
 	sa.init_x = 0;
 	ASSERT_TRUE( sa.run() );
 	EXPECT_TRUE( sa.test() );
+}
+
+TEST( ParallelTempering, compile )
+{
+	const int N = 5;
+	ParallelTempering pt;
+	std::vector<SA_Sample> saList;
+	saList.resize( N );
+	pt.SetMethod( Util::ORtool::ParallelTempering::tMethod::kLinear );
+	pt.Execute( saList.begin(), saList.begin() + N, 0 );
 }

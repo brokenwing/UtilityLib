@@ -53,6 +53,8 @@ public:
 private:
 	Timer global_time;
 	std::int64_t m_iteration = 0;
+	std::int64_t m_cnt_acc = 0;
+	std::int64_t m_cnt_update = 0;
 	double m_cur_T = 0;
 	double m_progress = 0;//0-1
 
@@ -89,6 +91,7 @@ protected:
 
 public:
 	friend class HillClimb<Solution, Engine>;
+	friend class ParallelTempering;
 
 	decltype( m_max_iteration ) GetMaxIteration()const noexcept	{		return m_max_iteration;	}
 	double GetTimeLimit()const noexcept	{		return m_timelimit_s;	}
@@ -100,7 +103,9 @@ public:
 	void Config( double timelimit_s, std::int64_t max_iteration, bool progress_calc_from_iteration = true, size_t sample_size = 300 )noexcept;
 	void SetTmaxTmin( double t_max, double t_min, bool auto_estimate = false )noexcept;
 	void SetTemperatureCalcType( const tCoolDownType val )noexcept	{		m_temperature_calc_type = val;	}
-
+	
+	double GetMinTemperature()const noexcept    {        return T_min;    }
+	double GetMaxTemperature()const noexcept    {        return T_max;    }
 	std::pair<double, double> GetInitialTemperature()const noexcept	{		return std::make_pair( T_min, T_max );	}
 	const Solution& GetSolution()const noexcept	{		return opt_solution;	}
 	double GetScore()const noexcept	{		return m_opt_score;	}
@@ -108,6 +113,8 @@ public:
 	const decltype( m_logList )& GetLogList()const noexcept	{		return m_logList;	}
 	double GetElapsedTime()const	{		return global_time.GetTime();	}
 	decltype( m_iteration )GetIteration()const noexcept	{		return m_iteration;	}
+	decltype( m_cnt_acc )GetAcceptCnt()const noexcept    {        return m_cnt_acc;    }
+	decltype( m_cnt_update )GetUpdateCnt()const noexcept    {        return m_cnt_update;    }
 
 	bool Execute( unsigned int seed = 0 );
 	bool ParallelExecute( const int n_thread, unsigned int seed = 0 );
@@ -355,9 +362,11 @@ inline void SimulatedAnnealing<Solution, Engine>::UpdateStep()
 			opt_solution = m_current;
 			m_opt_score = m_nxt_score;
 			DefaultHook( tState::kUpdateSolution );
+			++m_cnt_update;
 		}
 		DefaultHook( tState::kAcceptSolution );
 		m_score = m_nxt_score;
+		++m_cnt_acc;
 	}
 	else
 	{

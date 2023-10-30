@@ -117,6 +117,9 @@
     <ClInclude Include="MultipleIndexing.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ParallelTempering.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">

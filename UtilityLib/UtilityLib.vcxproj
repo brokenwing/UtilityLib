@@ -184,6 +184,7 @@
     <ClInclude Include="GraphTool.h" />
     <ClInclude Include="defrag_memory_resource.h" />
     <ClInclude Include="CFGparser.h" />
+    <ClInclude Include="ParallelTempering.h" />
     <ClInclude Include="MultipleIndexing.h" />
     <ClInclude Include="Traits.h" />
     <ClInclude Include="sortedvector.h" />
