@@ -120,10 +120,14 @@ public:
 		std::vector<int> rank2idx;
 		rank2idx.resize( n, -1 );
 
+		bool stop = false;
 		std::barrier guard( n, [&] ()noexcept
 		{
 			for( auto& it : q )
 				it.score = it.sol->GetCurrScore();
+			stop = false;
+			for( auto& it : q )
+				stop |= it.sol->Terminate();
 			//Temperature initialization
 			if( cnt_init != n )
 			{
@@ -232,7 +236,7 @@ public:
 		auto task = [&] ( const int idx )->void
 		{
 			auto& cur = q[idx];
-			while( !cur.sol->Terminate() )
+			while( !stop )
 			{
 				for( int i = 0; i < gap; i++ )
 				{
