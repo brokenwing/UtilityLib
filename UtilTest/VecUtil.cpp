@@ -11,6 +11,15 @@ TEST( VecUtil, EQ )
 	EXPECT_TRUE( EQ( a, b, 3 ) );
 	EXPECT_TRUE( !EQ( a, c, 2 ) );
 }
+TEST( VecUtil, FloatEQ )
+{
+	double a[3] = { 1.1,2.2,3.3 };
+	double b[3] = { 1.1,2.2,3.3 + eps * 0.1 };
+	double c[3] = { 1.1,3.3,2.2 };
+	EXPECT_TRUE( FloatEQ( a, b, 3 ) );
+	EXPECT_TRUE( !FloatEQ( a, c, 2 ) );
+	EXPECT_TRUE( NEQ( a, b, 3 ) );
+}
 
 TEST( VecUtil, EQ_diff_type )
 {
@@ -19,6 +28,15 @@ TEST( VecUtil, EQ_diff_type )
 	std::vector<int> c = { 1,2,2 };
 	EXPECT_TRUE( EQ( a, b.begin(), 3 ) );
 	EXPECT_TRUE( !EQ( a, c.begin(), 3 ) );
+}
+TEST( VecUtil, FloatEQ_diff_type )
+{
+	double a[3] = { 1.1,2.2,3.3 };
+	std::vector<double> b = { 1.1,2.2,3.3 + eps * 0.1 };
+	std::vector<double> c = { 1.1,2.2,2.2 };
+	EXPECT_TRUE( FloatEQ( a, b.begin(), 3 ) );
+	EXPECT_TRUE( !FloatEQ( a, c.begin(), 3 ) );
+	EXPECT_TRUE( NEQ( a, b.begin(), 3 ) );
 }
 
 TEST( VecUtil, NEQ )
@@ -29,6 +47,15 @@ TEST( VecUtil, NEQ )
 	EXPECT_TRUE( !NEQ( a, b, 3 ) );
 	EXPECT_TRUE( NEQ( a, c, 2 ) );
 }
+TEST( VecUtil, FloatNEQ )
+{
+	double a[3] = { 1.1,2.2,3.3 };
+	double b[3] = { 1.1,2.2,3.3 + eps * 0.1 };
+	double c[3] = { 1.1,3.3,2.2 };
+	EXPECT_TRUE( !FloatNEQ( a, b, 3 ) );
+	EXPECT_TRUE( FloatNEQ( a, c, 2 ) );
+	EXPECT_TRUE( NEQ( a, b, 3 ) );
+}
 
 TEST( VecUtil, NEQ_diff_type )
 {
@@ -37,6 +64,15 @@ TEST( VecUtil, NEQ_diff_type )
 	std::vector<int> c = { 1,2,2 };
 	EXPECT_TRUE( !NEQ( a, b.begin(), 3 ) );
 	EXPECT_TRUE( NEQ( a, c.begin(), 3 ) );
+}
+TEST( VecUtil, FloatNEQ_diff_type )
+{
+	double a[3] = { 1.1,2.2,3.3 };
+	std::vector<double> b = { 1.1,2.2,3.3 + eps * 0.1 };
+	std::vector<double> c = { 1.1,2.2,2.2 };
+	EXPECT_TRUE( !FloatNEQ( a, b.begin(), 3 ) );
+	EXPECT_TRUE( FloatNEQ( a, c.begin(), 3 ) );
+	EXPECT_TRUE( NEQ( a, b.begin(), 3 ) );
 }
 
 TEST( VecUtil, LT_str )

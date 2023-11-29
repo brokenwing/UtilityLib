@@ -1,6 +1,7 @@
 #pragma once
 #include "pch.h"
 #include "CommonDef.h"
+#include "Util.h"
 
 namespace Util
 {
@@ -20,6 +21,23 @@ bool GE( Iter_1 vec_begin_1, Iter_2 vec_begin_2, size_t n );
 //return LT(-1) EQ(0) GT(1)
 template <typename Iter_1, typename Iter_2>
 int Compare( Iter_1 vec_begin_1, Iter_2 vec_begin_2, size_t n );
+
+//Vector Compare with double
+template <typename Iter_1, typename Iter_2>
+bool FloatEQ( Iter_1 vec_begin_1, Iter_2 vec_begin_2, size_t n )
+{
+	while( n-- )
+	{
+		if( Util::NEQ( *vec_begin_1++, *vec_begin_2++ ) )
+			return false;
+	}
+	return true;
+}
+template <typename Iter_1, typename Iter_2>
+bool FloatNEQ( Iter_1 vec_begin_1, Iter_2 vec_begin_2, size_t n )
+{
+	return !FloatEQ( vec_begin_1, vec_begin_2, n );
+}
 
 template <typename Iter, typename Cmp>
 bool isVectorOrdered( Iter begin, Iter end, Cmp cmp );
