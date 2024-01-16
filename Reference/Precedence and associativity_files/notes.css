@@ -1,0 +1,242 @@
+body {
+  color: black;
+  background-color: white;
+  font-size: 12pt
+}
+.body {
+  color: black;
+  background-color: white;
+  font-size: 12pt
+}
+H1 {
+  color: black; 
+  text-align: center
+}
+H2 {
+  text-align: center;
+  color: black
+}
+H3 {
+  color: black;
+  text-align: left
+}
+HR {
+  color: #A00000; 
+  height: 4; 
+  background-color: #A00000
+}
+HR.black {
+  color: black; 
+  height: 4; 
+  background-color: black
+}
+HR.thin {
+  color: black;
+  height: 1;
+  background-color: white
+}
+HR.head {
+  color: black;
+  height: 2;
+  background-color: black
+}
+sub  {
+  font-size: 75%
+}
+sup  {
+  font-size: 75%
+}
+th {
+  background-color: #D0D0D0;
+}
+pre   {
+  font-weight: bold;
+  font-family: Courier new, monospace;
+  font-size: 100%
+}
+.tt   {
+  font-weight: bold;
+  font-family: Courier new, monospace;
+  font-size: 100%
+}
+A:link    {
+  color: blue;   
+  text-decoration: none
+}
+A:visited {
+  color: #9900FF;   
+  text-decoration: none
+}
+A:active  {
+  color: red;    
+  text-decoration: underline
+}
+A:hover {
+  color: red;
+  text-decoration: underline
+}
+dt {
+  text-align: left;
+  font-weight: bold
+}
+dd {
+  text-align: left
+}
+.topiclink {
+  color: blue
+}
+.nextchaplink {
+  color: red;
+  font-weight: bolder;
+  font-size: 150%
+}
+.nextpagelink {
+  color: blue;
+  font-weight: bolder;
+  font-size: 150%
+}
+.c   {
+  color: #702400;
+  font-weight: bold;
+  font-family: Courier new, monospace
+}
+.cbad   {
+  color: #C00070;
+  font-weight: bold;
+  font-family: Courier new, monospace
+}
+.cppgood   {
+  color: #702400;
+  font-weight: bold;
+  font-family: Courier new, monospace
+}
+.black   {
+  color: black;
+  font-weight: normal
+}
+.blacki   {
+  color: black;
+  font-style: italic;
+  font-weight: normal
+}
+.blue	 {
+  color: blue
+}
+.red     {
+  color: red
+}
+.darkred     {
+  color: #A00000
+}
+.orange  {
+  color: #FF8C00
+}
+.darkorange {
+  color: #DF5000
+}
+.magenta  {
+  color: #FF00FF
+}
+.green	  {
+  color: #007000
+}
+.grey	  {
+  background-color: #D3D3D3;
+  color: black
+}
+.links	  {
+  background-color: #C3E3FF;
+  color: black
+}
+.big     {
+  font-size: larger
+}
+.huge    {
+  font-size: 150%
+}
+.small   {
+  font-size: smaller
+}
+.emph    {
+  font-style: italic;
+  color: blue
+}
+.rmemph    {
+  color: blue
+}
+.boldemph    {
+  font-style: italic;
+  font-weight: bold;
+  color: blue
+}
+.term    {
+  font-style: italic;
+  color: blue
+}
+.rmterm    {
+  color: blue
+}
+.boldterm    {
+  font-style: italic;
+  font-weight: bold;
+  color: blue
+}
+.topic  {
+  font-weight: bold;
+  font-size: larger;
+  color: #0000C0
+}
+.toptable {
+  background-color: #ADD8E6;
+  border-color: #808080;
+  border-style: solid;
+  border-width: 4px
+}
+.th	  {
+  background-color: #C090E8;
+  text-align: center
+}
+.arrow {
+  font-weight: bold;
+  font-family: Arial, sans-serif
+}
+.lic {
+  background-color: white; 
+}
+.ddc {
+  background-color: #FEFDE8; 
+}
+.pagelisttext {
+  border-width: thin;
+  border-color: black;
+  border-style: solid;
+  background-color: #FEFDE8
+}
+.optional {
+  color: #006020  
+}
+.overline {
+  text-decoration: overline
+}
+.black {
+  color: black;
+  border-color: black 
+}
+.highpts {
+  color: red
+}
+.display {
+  color: #0000A0
+}
+.displayPage {
+}
+.border {
+  border-style: solid;
+  padding: 1mm
+}
+.indent {
+  margin-left: 4mm
+}
+.indent2 {
+  margin-left: 6mm
+}

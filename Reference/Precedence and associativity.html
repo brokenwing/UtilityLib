@@ -1,0 +1,308 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!-- saved from url=(0063)http://www.cs.ecu.edu/karl/5220/spr16/Notes/CFG/precedence.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+    <link rel="stylesheet" href="./Precedence and associativity_files/notes.css" type="text/css">
+    <title>
+      Precedence and associativity
+    </title>
+  </head>
+  
+  <body>
+    <div class="links">
+      <table width="100%" border="2">
+        <tbody><tr><td>
+            <table width="100%" class="links">
+              <tbody><tr>
+                <td valign="top" width="15%" align="left">
+                    <a href="http://www.cs.ecu.edu/karl/5220/spr16/Notes/CFG/ambiguity.html"><span class="nextpagelink">&#8592;</span></a>
+                       </td>
+                <td valign="top" width="70%" align="center">
+                  •&nbsp;&nbsp;
+                  <a href="http://www.cs.ecu.edu/karl/5220/spr16/Notes/index.html">HOME</a>&nbsp;&nbsp;•
+                  <a href="http://www.cs.ecu.edu/karl/5220/spr16/Notes/CFG/index.html">UP</a>&nbsp;&nbsp;•
+                </td>
+                <td valign="top" width="15%" align="right">
+                  &nbsp;
+                    <a href="http://www.cs.ecu.edu/karl/5220/spr16/Notes/CFG/examples.html"><span class="nextpagelink">&#8594;</span></a>
+                       </td>
+              </tr>
+              <tr>
+                <td valign="top" align="left">
+                      </td>
+                <td valign="top" align="center">
+                  <a href="http://www.cs.ecu.edu/karl/5220/spr16/Notes/index.html">Top</a>/<a href="http://www.cs.ecu.edu/karl/5220/spr16/Notes/CFG/index.html">CFG</a>/<a href="http://www.cs.ecu.edu/karl/5220/spr16/Notes/CFG/precedence.html">Precedence and associativity</a>
+                </td>
+                <td valign="top" align="right">
+                  &nbsp;
+                      </td>
+              </tr>
+            </tbody></table>
+          </td></tr>
+      </tbody></table>
+    </div>
+    
+    
+    <h2 align="center">
+      
+      6.5. Precedence and Associativity
+      
+    </h2>
+    
+    
+    
+    <p>There are actually two problems with our expression
+      grammar.  Obviously, it does not tell which operator,
+      + or *, has higher precedence.  But an equally bad
+      problem, also due to it ambiguity, is that it does
+      not say whether a sequence of + operations are done
+      from left to right or from right to left (or something else).
+      Here are two different parse trees for 
+      <b><b>n</b> + <b>n</b> + <b>n</b></b>.
+    </p>
+    
+<pre>    E               E
+   /|\             /|\
+  / | \           / | \
+ E  +  E         E  +  E
+ |    /|\       /|\    |   
+ n   / | \     / | \   n
+    E  +  E   E  +  E
+    |     |   |     |    
+    n     n   n     n
+</pre>
+    
+    <p>Does it matter?  After all, addition is associative.
+    </p>
+    
+    <p>But keep in mind that we are only concerned with syntax
+      here, not with meaning.  What + means is a separate issue.
+      What if + means subtraction?  Then it definitely makes
+      a difference which parse tree is chosen.
+    </p>
+    
+    
+    <br>
+    <h3>
+      
+      An unambiguous expression grammar
+      
+      <hr class="thin">
+    </h3>
+    
+    <p>It turns out to be easy to make an unambiguous grammar
+      that derives exactly the same sequences of tokens.
+    </p>
+    
+    <p>The heart of the problem with our expression grammar
+      is its symmetry.  You see <i>E</i> + <i>E</i> and <i>E</i> * <i>E</i>.
+    </p>
+    
+    <p>The key to making an unambiguous grammar 
+      is to introduce some asymmetries that force
+      a derivation to be done in a particular way.
+    </p>
+    
+    <p>We create a nonterminal for each level of precedence.
+    </p>
+    
+    <ul>
+      <li><p>
+          <i>E</i> derives any expression,
+        </p></li>
+      <li><p>
+          <i>T</i> derives only expressions that do not 
+          contain + except possibly inside parentheses,
+        </p></li>
+      <li><p>
+          <i>F</i> derives only expressions that have no
+          operators except possibly inside parentheses.
+        </p></li>
+    </ul>
+    
+    <p>We also introduce asymmetries in the right-hand
+      sides of production to force operations to be done
+      from left to right.
+    </p>
+    
+    <a name="bottomup"></a>
+    <div align="center">
+      <table cellpadding="3">
+        <tbody valign="top">
+          <tr>
+            <td><i>E</i></td>
+            <td>&#8594;</td>
+            <td><i>T</i></td>
+          </tr>
+          <tr>
+            <td><i>E</i></td>
+            <td>&#8594;</td>
+            <td><i>E</i> + <i>T</i></td>
+          </tr>
+          <tr>
+            <td><i>T</i></td>
+            <td>&#8594;</td>
+            <td><i>F</i></td>
+          </tr>
+          <tr>
+            <td><i>T</i></td>
+            <td>&#8594;</td>
+            <td><i>T</i> * <i>F</i></td>
+          </tr>
+          <tr>
+            <td><i>F</i></td>
+            <td>&#8594;</td>
+            <td><b>n</b></td>
+          </tr>
+          <tr>
+            <td><i>F</i></td>
+            <td>&#8594;</td>
+            <td>( <i>E</i> )</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <p>A little thought shows that this grammar is unambiguous.
+      Here is the only parse tree for expression
+      <b>n + n * n</b>.
+    </p>
+    
+<pre>      E
+     /|\
+    / | \
+   E  +  T
+   |    /|\
+   T   T * F
+   |   |   |
+   F   F   n
+   |   |
+   n   n
+</pre>
+    
+    <p>Additions are forced to be done from left to right.
+      Here is the unique parse tree for <b><b>n</b> + <b>n</b> + <b>n</b></b>.
+    </p>
+    
+<pre>        E
+       /|\
+      / | \
+     E  +  T
+    /|\    |
+   E + T   F
+   |   |   |
+   T   F   n
+   |   |
+   F   n
+   |
+   n
+</pre>
+    
+    <br>
+    <h3>
+      
+      Controlling associativity: left and right recursion
+      
+      <hr class="thin">
+    </h3>
+    
+    <p>For variety, let's define an expression grammar where
+      * still has precedence over +, + is done from right to
+      left and * is done from left to right.
+    </p>
+    
+    <a name="predictive"></a>
+    <div align="center">
+      <table cellpadding="3">
+        <tbody valign="top">
+          <tr>
+            <td><i>E</i></td>
+            <td>&#8594;</td>
+            <td><i>T</i></td>
+          </tr>
+          <tr>
+            <td><i>E</i></td>
+            <td>&#8594;</td>
+            <td><i>T</i> + <i>E</i></td>
+          </tr>
+          <tr>
+            <td><i>T</i></td>
+            <td>&#8594;</td>
+            <td><i>F</i></td>
+          </tr>
+          <tr>
+            <td><i>T</i></td>
+            <td>&#8594;</td>
+            <td><i>T</i> * <i>F</i></td>
+          </tr>
+          <tr>
+            <td><i>F</i></td>
+            <td>&#8594;</td>
+            <td><b>n</b></td>
+          </tr>
+          <tr>
+            <td><i>F</i></td>
+            <td>&#8594;</td>
+            <td>( <i>E</i> )</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <p>A production of the form <i>N</i> &#8594; &#945;<i>N</i>
+      is <span class="term">right recursive</span> because the recursive
+      reference to nonterminal <i>N</i> is at the right end
+      of the right-hand side.
+    </p>
+    
+    <p>For example, production <i>E</i> &#8594; <i>T</i> + <i>E</i> 
+      is right recursive, and it indicates that + is
+      <span class="term">right associative</span> (done from right to left).
+    </p>
+    
+    <p>Similarly, a production of the form
+      <i>N</i> &#8594; <i>N</i>&#945; is <span class="term">left recursive</span>.
+      Left-recursive rule <i>T</i> &#8594; <i>T</i> * <i>F</i>
+      indicates that * is <span class="term">left-associative</span>
+      (done from left to right).
+    </p>
+    
+    
+    
+    <p>&nbsp;</p>
+    <div class="links">
+      <table width="100%" border="2">
+        <tbody><tr><td>
+            <table width="100%" class="links">
+              <tbody><tr>
+                <td valign="top" width="15%" align="left">
+                    <a href="http://www.cs.ecu.edu/karl/5220/spr16/Notes/CFG/ambiguity.html"><span class="nextpagelink">&#8592;</span></a>
+                       </td>
+                <td valign="top" width="70%" align="center">
+                  •&nbsp;&nbsp;
+                  <a href="http://www.cs.ecu.edu/karl/5220/spr16/Notes/index.html">HOME</a>&nbsp;&nbsp;•
+                  <a href="http://www.cs.ecu.edu/karl/5220/spr16/Notes/CFG/index.html">UP</a>&nbsp;&nbsp;•
+                </td>
+                <td valign="top" width="15%" align="right">
+                  &nbsp;
+                    <a href="http://www.cs.ecu.edu/karl/5220/spr16/Notes/CFG/examples.html"><span class="nextpagelink">&#8594;</span></a>
+                       </td>
+              </tr>
+              <tr>
+                <td valign="top" align="left">
+                      </td>
+                <td valign="top" align="center">
+                  <a href="http://www.cs.ecu.edu/karl/5220/spr16/Notes/index.html">Top</a>/<a href="http://www.cs.ecu.edu/karl/5220/spr16/Notes/CFG/index.html">CFG</a>/<a href="http://www.cs.ecu.edu/karl/5220/spr16/Notes/CFG/precedence.html">Precedence and associativity</a>
+                </td>
+                <td valign="top" align="right">
+                  &nbsp;
+                      </td>
+              </tr>
+            </tbody></table>
+          </td></tr>
+      </tbody></table>
+    </div>
+    <p>&nbsp;</p>
+    <p>&nbsp;</p>
+  
+
+</body></html>
