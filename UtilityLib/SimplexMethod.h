@@ -7,6 +7,7 @@
 #include <assert.h>
 
 #include "Util.h"
+#include "Timer.h"
 
 namespace Util::ORtool
 {
@@ -322,19 +323,34 @@ public:
 private:
 	static constexpr double PerturbationEPS = 1e-14;//consider accumulation of errors, this can't be closed to Util::eps, but not sure if this is suitable
 	mutable std::mt19937 rng;//for perturbation, http://theory.stanford.edu/~megiddo/pdf/degen.pdf says almost do not need to worry about PerturbationEPS too small
-	double timelimit = 1;
-	int maxiteration = 0;
+	double timelimit = std::numeric_limits<double>::max();
+	int maxiteration = INT_MAX;
 	bool use_perturbation = true;
+
+	mutable int iteration = 0;
+	mutable Timer time;
 
 public:
 	SimplexMethod() :rng( 0 )
 	{}
-	void SetPerturbation( bool val )noexcept	{		use_perturbation = val;	}
-	
+	void SetSeed( unsigned int seed )			{		rng.seed( seed );			}
+
+	bool GetPerturbation()const noexcept		{		return use_perturbation;	}
+	void SetPerturbation( bool val )noexcept	{		use_perturbation = val;		}
+
+	int GetIteration()const noexcept			{		return iteration;			}
+	void SetMaxIteration( int val )noexcept		{		maxiteration = val;			}
+
+	double GetTimeAsSecond()const				{		return time.GetSeconds();	}
+	void SetTimelimit( double val )noexcept		{		timelimit = val;			}
+
 	//<status,ofv>, aim for equivalent result (even multi-solution) with same Dense/Sparse structure
 	template <row_type T>
 	std::pair<tError, double> SolveLP( NonStandardFormLinearProgram<T>& input, std::vector<double>& result )const
 	{
+		iteration = 0;
+		time.SetTime();
+
 		std::list<std::pair<int, Equation<T>>> recoverlist;//<index,eq>
 		std::vector<double> shift;
 		double bias = 0;
@@ -681,6 +697,10 @@ public:
 	}
 
 private:
+	bool isTerminated()const
+	{
+		return timelimit != std::numeric_limits<double>::max() && ( iteration >= maxiteration || time.GetTime() >= timelimit );
+	}
 	template <typename T>
 	bool isValidResult( NonStandardFormLinearProgram<T>& input, const std::vector<int>& idxmap )const
 	{
@@ -721,11 +741,10 @@ private:
 
 		double ofv = 0;
 		double sync_ofv = 0;
-		int iteration = 0;
 
-		while( true )
+		while( !isTerminated() )
 		{
-			assert( iteration++ < 1000000 );
+			++iteration;
 			const auto [col, col_val] = FindPivotColumn( objectivefunc );
 			if( Util::GE( col_val, 0 ) )
 				break;//done
