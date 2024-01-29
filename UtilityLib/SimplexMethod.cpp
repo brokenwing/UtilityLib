@@ -13,12 +13,22 @@ void Util::ORtool::DenseRow::multiply( double val )
 
 void Util::ORtool::DenseRow::add( const double coef, const DenseRow& other )
 {
+	this->resize( std::max( size(), other.size() ), 0 );
 	auto x = begin();
 	auto y = other.begin();
 	for( ; x != end() && y != other.end(); ++x, ++y )
 	{
 		*x += *y * coef;
 	}
+}
+
+void Util::ORtool::DenseRow::add( const double coef, const SparseRow& other )
+{
+	if( other.empty() ) [[unlikely ]]
+		return;
+	this->resize( std::max( (int)size(), other.back().first + 1 ), 0 );
+	for( auto [idx, val] : other )
+		this->operator[]( idx ) += coef * val;
 }
 
 double Util::ORtool::DenseRow::dot( const DenseRow& other ) const
@@ -31,6 +41,11 @@ double Util::ORtool::DenseRow::dot( const DenseRow& other ) const
 		ret += *x * *y;
 	}
 	return ret;
+}
+
+double Util::ORtool::DenseRow::dot( const SparseRow& other ) const
+{
+	return other.dot( *this );
 }
 
 SparseRow Util::ORtool::DenseRow::toSparseRow() const
@@ -121,6 +136,13 @@ void Util::ORtool::SparseRow::add( const double coef, const SparseRow& other )
 	assert( check() );
 }
 
+void Util::ORtool::SparseRow::add( const double coef, const DenseRow& other )
+{
+	auto tmp = other;
+	tmp.add( coef, *this );
+	*this = tmp.toSparseRow();
+}
+
 double Util::ORtool::SparseRow::dot( const SparseRow& other ) const
 {
 	assert( check() );
@@ -142,6 +164,16 @@ double Util::ORtool::SparseRow::dot( const SparseRow& other ) const
 		else
 			++y;
 	}
+	return ret;
+}
+
+double Util::ORtool::SparseRow::dot( const DenseRow& other ) const
+{
+	assert( check() );
+	assert( other.check() );
+	double ret = 0;
+	for( auto [idx, val] : *this )
+		ret += other[idx] * val;
 	return ret;
 }
 

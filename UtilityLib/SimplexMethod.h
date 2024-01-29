@@ -22,7 +22,9 @@ struct DenseRow :public std::vector<double>
 	constexpr void reduce()const noexcept{}//dummy
 	void multiply( double val );
 	void add( const double coef, const DenseRow& other );
+	void add( const double coef, const SparseRow& other );
 	double dot( const DenseRow& other )const;
+	double dot( const SparseRow& other )const;
 	SparseRow toSparseRow()const;
 	std::string toString( const int precision = 2 )const;
 };
@@ -65,7 +67,9 @@ struct SparseRow :protected std::vector<std::pair<int, double>>
 	void multiply( double val );
 	//A+=B*ceof
 	void add( const double coef, const SparseRow& other );
+	void add( const double coef, const DenseRow& other );
 	double dot( const SparseRow& other )const;
+	double dot( const DenseRow& other )const;
 	//O(logN) if N>=SEARCH_TRADE_OFF
 	double operator[]( const int target )const;
 	//O(N) if create, otherwise O(logN)
@@ -123,7 +127,8 @@ struct Equation :public std::tuple<T, tRelation, double>
 		if( Util::LT( val, 0 ) )
 			reverse_relation();
 	}
-	void add( const double coef, const Equation& other )
+	template <row_type Tother>
+	void add( const double coef, const Equation<Tother>& other )
 	{
 		get_vector().add( coef, other.get_vector() );
 		get_rhs() += coef * other.get_rhs();
@@ -149,6 +154,20 @@ struct Equation :public std::tuple<T, tRelation, double>
 			break;
 		}
 		return false;
+	}
+	Equation<SparseRow> toSparseEquation()const
+	{
+		if constexpr( std::same_as<T, DenseRow> )
+			return Equation<SparseRow>( get_vector().toSparseRow(), get_relation(), get_rhs() );
+		if constexpr( std::same_as<T, SparseRow> )
+			return *this;
+	}
+	Equation<DenseRow> toDenseEquation()const
+	{
+		if constexpr( std::same_as<T, DenseRow> )
+			return *this;
+		if constexpr( std::same_as<T, SparseRow> )
+			return Equation<DenseRow>( get_vector().toDenseRow(), get_relation(), get_rhs() );
 	}
 	//<all zero,valid>, if all zero, valid means always true of false
 	std::pair<bool, bool> check()const
@@ -313,7 +332,7 @@ public:
 	enum struct tError
 	{
 		kEmptyDomain,
-		kInvalidEquation,
+		kInputNotMatchWithLastResult,
 		
 		kOptimum,
 		kInfeasible,
@@ -327,8 +346,27 @@ private:
 	int maxiteration = INT_MAX;
 	bool use_perturbation = true;
 
+	int phase1_iteration = 0;
+	int phase2_iteration = 0;
 	mutable int iteration = 0;
-	mutable Timer time;
+	Timer time;
+
+	//mid result and for LP with new constraints
+	int n_slack = 0;//for XXX <= a and for XXX >= a
+	int n_artificial_var = 0;//for XXX >= a and XXX == a
+	int n_additional_constraint = 0;
+	double bias = 0;
+	std::vector<int> last_idxmap;
+	std::vector<double> raw_result;
+	std::vector<double> shift;
+	struct RecoverInfo
+	{
+		int var_idx = -1;
+		tRelation relation;
+		Equation<SparseRow> eq_substitution;
+		Equation<SparseRow> eq_recover;
+	};
+	std::list<RecoverInfo> recoverlist;
 
 public:
 	SimplexMethod() :rng( 0 )
@@ -338,24 +376,44 @@ public:
 	bool GetPerturbation()const noexcept		{		return use_perturbation;	}
 	void SetPerturbation( bool val )noexcept	{		use_perturbation = val;		}
 
-	int GetIteration()const noexcept			{		return iteration;			}
+	int GetPhase1Iteration()const noexcept			{		return phase1_iteration;			}
+	int GetPhase2Iteration()const noexcept			{		return phase2_iteration;			}
+	int GetTotalIteration()const noexcept			{		return phase1_iteration + phase2_iteration;			}
+
 	void SetMaxIteration( int val )noexcept		{		maxiteration = val;			}
 
 	double GetTimeAsSecond()const				{		return time.GetSeconds();	}
 	void SetTimelimit( double val )noexcept		{		timelimit = val;			}
-
+	
+	bool isTerminated()const
+	{
+		return timelimit != std::numeric_limits<double>::max() && ( iteration >= maxiteration || time.GetTime() >= timelimit );
+	}
+	void Clear()
+	{
+		n_slack = 0;
+		n_artificial_var = 0;
+		n_additional_constraint = 0;
+		bias = 0;
+		last_idxmap.clear();
+		raw_result.clear();
+		shift.clear();
+		recoverlist.clear();
+	}
 	//<status,ofv>, aim for equivalent result (even multi-solution) with same Dense/Sparse structure
 	template <row_type T>
-	std::pair<tError, double> SolveLP( NonStandardFormLinearProgram<T>& input, std::vector<double>& result )const
+	std::pair<tError, double> SolveLP( NonStandardFormLinearProgram<T>& input, std::vector<double>& result )
 	{
-		iteration = 0;
+		//init
+		phase1_iteration = 0;
+		phase2_iteration = 0;
 		time.SetTime();
 
-		std::list<std::pair<int, Equation<T>>> recoverlist;//<index,eq>
-		std::vector<double> shift;
-		double bias = 0;
+		recoverlist.clear();
+		bias = 0;
 
 		const int n = (int)input.lb.size();
+		shift.clear();
 		shift.resize( n, 0 );//x>=a -> y=x-a and y>=0, save 'a' for recovering x
 
 		//check domain
@@ -376,16 +434,21 @@ public:
 			input.objectivefunc.multiply( -1 );
 		
 		//convert Non-INF domain to x>=0
+		bool need_shift = false;
 		for( int i = 0; i < n; i++ )
 			if( input.lb[i] != -INF && !Util::IsZero( input.lb[i] ) )
 			{
 				//since x>=a, let X=x-a, replace x with X+a, reuse current idx, rhs=rhs-x_coef*a
-				double val = input.lb[i];
-				shift[i] = val;
-				for( auto& eq : input )
-					eq.get_rhs() -= val * eq.get_vector()[i];
-				bias += input.objectivefunc[i] * val;
+				shift[i] = input.lb[i];
+				need_shift = true;
 			}
+		if( need_shift )
+		{
+			T shift_row( shift.begin(), shift.end() );
+			for( auto& eq : input )
+				eq.get_rhs() += RemoveLowerBound( eq.get_vector(), shift_row );
+			bias -= RemoveLowerBound( input.objectivefunc, shift_row );
+		}
 
 		//convert R domain to x>=0 by substitution (convert equation to '==' first)
 		for( int i = 0; i < n; i++ )
@@ -434,24 +497,22 @@ public:
 				select->multiply( 1.0 / select->get_vector()[i] );
 				assert( prio != tPrio::kNull );
 				const bool sign_postive = ( select->get_relation() == tRelation::kLE ) ? true : false;//x<=a -> x+s==a (positive), x>=a -> x-s==a (neg) with s>=0
-				
-				const auto do_substitution = [&]( Equation<T>& eq )->void
-				{
-					const double coef = eq.get_vector()[i];
-					if( Util::IsZero( coef ) )
-						return;
-					eq.add( -coef, *select );
-					if( prio == tPrio::kLEorGE )
-						eq.get_vector()[i] = sign_postive ? -coef : coef;//use i as new var, this is new coef
-				};
+
+				RecoverInfo ri;
+				ri.var_idx = i;
+				ri.relation = select->get_relation();
+				ri.eq_substitution = select->toSparseEquation();//fix
+				ri.eq_recover = ri.eq_substitution;//update
+
 				for( auto it = input.begin(); it != input.end(); ++it )
 				{
 					if( it == select )
 						continue;
-					do_substitution( *it );
+					DoSubstitution( ri, *it );
 				}
 				for( auto& e : recoverlist )
-					do_substitution( e.second );
+					DoSubstitution( ri, e.eq_recover );
+
 				{//do with objective function
 					const double coef = input.objectivefunc[i];
 					input.objectivefunc.add( -coef, select->get_vector() );
@@ -460,29 +521,18 @@ public:
 						input.objectivefunc[i] = sign_postive ? -coef : coef;
 				}
 				//save for recovering i
-				select->get_vector()[i] = sign_postive ? 1 : -1;//recover x from here
-				select->get_vector().reduce();
-				recoverlist.emplace_back( i, std::move( *select ) );
+				ri.eq_recover.get_vector()[i] = sign_postive ? 1 : -1;//recover x from here
+				ri.eq_recover.get_vector().reduce();
+				recoverlist.emplace_back( ri );
 				input.erase( select );
 			}
 		for( auto& e : input )
 			e.get_vector().reduce();//reduce after R transform
 		
 		//check trivial equation and erase
-		bool hasInvalidEquation = false;
-		std::erase_if( input, [&hasInvalidEquation] ( auto& eq )->bool
-		{
-			auto [allzero, valid] = eq.check();
-			if( allzero )
-			{
-				if( !valid )
-					hasInvalidEquation = true;
-				return true;
-			}
-			return false;
-		} );
+		const bool hasInvalidEquation = EraseTrivialEquation( input );
 		if( hasInvalidEquation )
-			return std::make_pair( tError::kInvalidEquation, 0 );
+			return std::make_pair( tError::kInfeasible, 0 );
 
 		//deal with neg rhs
 		for( auto& eq : input )
@@ -490,8 +540,9 @@ public:
 				eq.multiply( -1 );
 
 		//calc additional var
-		int n_slack = 0;//for XXX <= a and for XXX >= a
-		int n_artificial_var = 0;//for XXX >= a and XXX == a
+		n_slack = 0;
+		n_artificial_var = 0;
+		n_additional_constraint = 0;
 		for( auto& eq : input )
 		{
 			n_slack += eq.get_relation() != tRelation::kEQ;
@@ -501,21 +552,21 @@ public:
 		{
 			if( n_slack + n_artificial_var > 0 )
 				for( auto& eq : input )
-					eq.get_vector().resize( n + n_slack + n_artificial_var, 0 );
+					eq.get_vector().resize( GetTotalVar( n ), 0 );
 		}
 		if constexpr( std::same_as<T, DenseRow> )
-			input.objectivefunc.resize( n + n_slack + n_artificial_var );
+			input.objectivefunc.resize( GetTotalVar( n ), 0 );
 		const auto isOriginalVar = [n] ( int idx )->bool
 		{
 			return idx >= 0 && idx < n;
 		};
-		const auto isSlackVar = [n, n_slack] ( int idx )->bool
+		const auto isSlackVar = [n, this] ( int idx )->bool
 		{
 			return idx >= n && idx < n + n_slack;
 		};
-		const auto isArtificialVar = [n, n_slack, n_artificial_var]( int idx )->bool
+		const auto isArtificialVar = [n, this]( int idx )->bool
 		{
-			return idx >= n + n_slack && idx < n + n_slack + n_artificial_var;
+			return idx >= n + n_slack && idx < GetTotalVar( n );
 		};
 
 		//add var and build idxmap, sub_of
@@ -526,7 +577,7 @@ public:
 
 		T sub_of;//min of all artificial var
 		if constexpr( std::same_as<T, DenseRow> )
-			sub_of.resize( n + n_slack + n_artificial_var );
+			sub_of.resize( GetTotalVar( n ), 0 );
 		if constexpr( std::same_as<T, SparseRow> )
 			sub_of.reserve( n + n_slack );
 		double sub_ofv = 0;
@@ -565,7 +616,9 @@ public:
 		//phase 1, refer to (case 3 example is wrong) https://uomustansiriyah.edu.iq/media/lectures/6/6_2022_01_08!08_05_56_PM.pdf
 		if( n_artificial_var > 0 )
 		{
+			iteration = 0;
 			auto [ret_code, ret_ofv, sync_ofv] = DoSimplexMethod( sub_of, input.begin(), input.end(), idxmap, &input.objectivefunc );
+			phase1_iteration = iteration;
 			if( ret_code == tError::kUnbound )
 				return std::make_pair( ret_code, 0 );
 			assert( ret_code == tError::kOptimum );
@@ -608,7 +661,7 @@ public:
 			}
 			else//remove var if sub_of[i] is neg
 			{
-				const int len = n + n_slack + n_artificial_var;
+				const int len = GetTotalVar( n );
 				std::vector<bool> toRemove;//ArtificialVar not in idxmap + neg org var
 				toRemove.resize( len, false );
 				for( int i = 0; i < len; ++i )
@@ -652,55 +705,236 @@ public:
 
 		//phase 2
 		assert( isValidResult( input, idxmap ) );
+		iteration = 0;
 		auto [ret_code, ret_ofv, dummy] = DoSimplexMethod( input.objectivefunc, input.begin(), input.end(), idxmap );
+		phase2_iteration = iteration;
 		if( ret_code == tError::kUnbound )
 			return std::make_pair( ret_code, 0 );
 		assert( ret_code == tError::kOptimum );
 		assert( isValidResult( input, idxmap ) );
-		const double ofv = ( ret_ofv + bias ) * ( ( !input.isMaximization ) ? -1 : 1 );
+		const double ofv = ret_ofv + bias;
+
+		last_idxmap = idxmap;
 
 		//build org result
-		result.clear();
-		result.resize( n, 0 );//default 0
+		raw_result.clear();
+		raw_result.resize( GetTotalVar( n ), 0 );//default 0
 		for( int i = 0; auto & eq:input )
 		{
-			if( idxmap[i] < n )
-				result[idxmap[i]] = eq.get_rhs();//simple proof: at any time, this is a valid solution
+			raw_result[idxmap[i]] = eq.get_rhs();//simple proof: at any time, this is a valid solution
 			++i;
 		}
 		//recover shift and substitution
-		std::vector<double> ret = result;
+		result.assign( raw_result.begin(), raw_result.begin() + n );
 		for( int i = 0; i < n; i++ )
-			ret[i] += shift[i];
+			result[i] += shift[i];
 		//assume coef is 1, rhs-result.*vec
-		for( auto& eq : recoverlist )
+		SparseRow sparse_raw_result( raw_result.begin(), raw_result.end() );
+		for( auto& e : recoverlist )
 		{
-			double tmp = eq.second.get_rhs();//todo
+			double tmp = e.eq_recover.get_rhs() - e.eq_recover.get_vector().dot( sparse_raw_result );
+			result[e.var_idx] = tmp;
+		}
+
+		bias = ofv;
+		return std::make_pair( tError::kOptimum, SignConvert( ofv, input.isMaximization ) );
+	}
+	
+	//https://opensourc.es/blog/simplex-add/
+	template <row_type T>
+	std::pair<tError, double> SolveWithNewConstraints( NonStandardFormLinearProgram<T>& input, std::vector<double>& result, const Equation<T>& equation )
+	{
+		std::vector<Equation<T>> tmp;
+		tmp.emplace_back( equation );
+		return SolveWithNewConstraints( input, result, tmp.begin(), tmp.end() );
+	}
+
+	//assume input is the result from SolveLP
+	//new var is NG
+	template <row_type T, typename Iter>
+	requires std::same_as<Equation<T>, typename std::iterator_traits<Iter>::value_type>
+	std::pair<tError, double> SolveWithNewConstraints( NonStandardFormLinearProgram<T>& input, std::vector<double>& result, Iter constraint_st, Iter constraint_ed )
+	{
+		time.SetTime();
+		const int n = (int)input.lb.size();
+
+		//check whether input is match with last run of SolveLP
+		if( GetTotalVar( n ) != (int)raw_result.size() )
+			return { tError::kInputNotMatchWithLastResult,0 };
+		if( input.size() != last_idxmap.size() )
+			return { tError::kInputNotMatchWithLastResult,0 };
+		if( n != (int)shift.size() )
+			return { tError::kInputNotMatchWithLastResult,0 };
+		//assume max form
+		bool isOptimum = true;
+		for( auto e : input.objectivefunc )
+		{
+			double val = 0;
+			if constexpr( std::same_as<T, DenseRow> )
+				val = e;
 			if constexpr( std::same_as<T, SparseRow> )
+				val = e.second;
+
+			if( Util::LT( val, 0 ) )
 			{
-				for( auto [idx, val] : eq.second.get_vector() )
+				isOptimum = false;
+				break;
+			}
+		}
+		if( !isOptimum )
+			return { tError::kInputNotMatchWithLastResult,0 };
+
+		std::vector<typename NonStandardFormLinearProgram<T>::iterator> idx2basis;
+		{
+			idx2basis.resize( GetTotalVar( n ), input.end() );
+			int i = 0;
+			for( auto it = input.begin(); it != input.end(); ++it )
+			{
+				const int idx = last_idxmap[i];
+				idx2basis[idx] = it;
+				++i;
+			}
+		}
+		T org_sparse_result( raw_result.begin(), raw_result.end() );
+		T sparse_shift( shift.begin(), shift.end() );
+
+		//add constraint
+		int from_idx = GetTotalVar( n );
+		std::vector<Iter> constraint_list;
+		constraint_list.reserve( std::distance( constraint_st, constraint_ed ) );
+
+		//preprocess, even satisfied eq should add (could be used in the future)
+		for( auto it = constraint_st; it != constraint_ed; ++it )
+		{
+			//do transform (shift and substitute)
+			if constexpr( std::same_as<T, DenseRow> )
+				it->get_vector().resize( GetTotalVar( n ), 0 );
+			it->get_rhs() += RemoveLowerBound( it->get_vector(), sparse_shift );
+			for( auto& e : recoverlist )
+			{
+				DoSubstitution( e, *it );
+			}
+
+			if constexpr( std::same_as<T, DenseRow> )
+				it->get_vector().resize( raw_result.size(), 0 );
+
+			//deal with basis
+			{
+				const auto backup = it->get_vector();
+				int idx = 0;
+				for( auto e : backup )
 				{
-					assert( idx < n );
-					tmp -= result[idx] * val;
+					double val = 0;
+					if constexpr( std::same_as<T, DenseRow> )
+						val = e;
+					if constexpr( std::same_as<T, SparseRow> )
+					{
+						idx = e.first;
+						val = e.second;
+					}
+					if( !Util::IsZero( val ) && idx2basis[idx] != input.end() )
+					{
+						assert( Util::EQ( 1, idx2basis[idx]->get_vector()[idx] ) );
+						it->add( -val, *idx2basis[idx] );
+					}
+					++idx;
 				}
 			}
-			if constexpr( std::same_as<T, DenseRow> )
-			{
-				for( int i = 0; i < n; i++ )
-					tmp -= result[i] * eq.second.get_vector()[i];
-			}
-			ret[eq.first] = tmp;
-		}
-		result.swap( ret );
 
-		return std::make_pair( tError::kOptimum, ofv );
+			if( it->get_relation() != tRelation::kLE )
+				it->multiply( -1 );
+
+			it->get_vector().reduce();
+
+			auto [allzero, valid] = it->check();
+			if( !valid )
+				return std::make_pair( tError::kInfeasible, 0 );
+			if( allzero )
+				continue;
+
+			constraint_list.emplace_back( it );
+
+			n_additional_constraint += ( it->get_relation() == tRelation::kEQ ) ? 2 : 1;
+		}
+
+		//resize and add
+		for( auto it : constraint_list )
+		{
+			if constexpr( std::same_as<T, DenseRow> )
+				it->get_vector().resize( GetTotalVar( n ), 0 );
+
+			if( use_perturbation )
+				AddPerturbation( it->get_rhs() );
+
+			if( it->get_relation() == tRelation::kEQ )
+			{
+				auto tmp = *it;
+				it->get_relation() = tRelation::kLE;
+				tmp.get_relation() = tRelation::kGE;
+				tmp.multiply( -1 );
+
+				tmp.get_vector()[from_idx] = 1;
+				last_idxmap.emplace_back( from_idx );
+				input.emplace_back( std::move( tmp ) );
+				++from_idx;
+			}
+			it->get_vector()[from_idx] = 1;
+			last_idxmap.emplace_back( from_idx );
+			input.emplace_back( std::move( *it ) );
+			++from_idx;
+		}
+
+		if constexpr( std::same_as<T, DenseRow> )
+		{
+			for( auto& e : input )
+				e.get_vector().resize( GetTotalVar( n ), 0 );
+			input.objectivefunc.resize( GetTotalVar( n ), 0 );
+		}
+		//do
+		iteration = 0;
+		auto [ret_code, ret_ofv, dummy] = DoSimplexMethod<T>( input.objectivefunc, input.begin(), input.end(), last_idxmap, nullptr, true );
+		phase2_iteration = iteration;
+		if( ret_code == tError::kInfeasible )
+			return std::make_pair( ret_code, 0 );
+		assert( ret_code == tError::kOptimum );
+		assert( isValidResult( input, last_idxmap ) );
+		for( auto e : input.objectivefunc )
+		{
+			double val = 0;
+			if constexpr( std::same_as<T, DenseRow> )
+				val = e;
+			if constexpr( std::same_as<T, SparseRow> )
+				val = e.second;
+			if( Util::LT( val, 0 ) )
+				return { tError::kUnbound,0 };
+		}
+		const double ofv = ret_ofv + bias;
+
+		//build org result
+		raw_result.clear();
+		raw_result.resize( GetTotalVar( n ), 0 );//default 0
+		for( int i = 0; auto & eq:input )
+		{
+			raw_result[last_idxmap[i]] = eq.get_rhs();//simple proof: at any time, this is a valid solution
+			++i;
+		}
+		//recover shift and substitution
+		result.assign( raw_result.begin(), raw_result.begin() + n );
+		for( int i = 0; i < n; i++ )
+			result[i] += shift[i];
+		//assume coef is 1, rhs-result.*vec
+		SparseRow sparse_raw_result( raw_result.begin(), raw_result.end() );
+		for( auto& e : recoverlist )
+		{
+			double tmp = e.eq_recover.get_rhs() - e.eq_recover.get_vector().dot( sparse_raw_result );
+			result[e.var_idx] = tmp;
+		}
+
+		bias = ofv;
+		return { tError::kOptimum,SignConvert( ofv,input.isMaximization ) };
 	}
 
 private:
-	bool isTerminated()const
-	{
-		return timelimit != std::numeric_limits<double>::max() && ( iteration >= maxiteration || time.GetTime() >= timelimit );
-	}
 	template <typename T>
 	bool isValidResult( NonStandardFormLinearProgram<T>& input, const std::vector<int>& idxmap )const
 	{
@@ -722,21 +956,24 @@ private:
 	//modify equation and OF, sync does the same transform as OF
 	template <row_type Row, typename T>
 	requires std::same_as<Equation<Row>, typename std::iterator_traits<T>::value_type>
-	std::tuple<tError, double, double> DoSimplexMethod( Row& objectivefunc, T st, T ed, std::vector<int>& idxmap, Row* sync = nullptr )const
+	std::tuple<tError, double, double> DoSimplexMethod( Row& objectivefunc, T st, T ed, std::vector<int>& idxmap, Row* sync = nullptr, bool dual = false )const
 	{
 		assert( idxmap.size() == std::distance( st, ed ) );
+		if( st == ed ) [[unlikely]]
+			return std::make_tuple( tError::kOptimum, 0, 0 );
+
 #ifdef _DEBUG
-		for( auto i = st; i != ed; ++i )
-			assert( Util::GE( i->get_rhs(), 0 ) );
+		if( !dual )
+		{
+			for( auto i = st; i != ed; ++i )
+				assert( Util::GE( i->get_rhs(), 0 ) );
+		}
 #endif
 		//do Perturbation
-		static std::uniform_real_distribution<double> RandPerturbation( 0.01, 1 );
-		static_assert( sizeof( double ) >= 8 );
-		static_assert( Util::eps > PerturbationEPS );
-		if( use_perturbation )
+		if( use_perturbation && !dual )
 		{
 			for( auto it = st; it != ed; ++it )
-				it->get_rhs() += RandPerturbation( rng ) * PerturbationEPS;
+				AddPerturbation( it->get_rhs() );
 		}
 
 		double ofv = 0;
@@ -745,15 +982,38 @@ private:
 		while( !isTerminated() )
 		{
 			++iteration;
-			const auto [col, col_val] = FindPivotColumn( objectivefunc );
-			if( Util::GE( col_val, 0 ) )
-				break;//done
 
-			const auto [row, cell_val, base] = FindPivotRow<Row>( col, st, ed );
-			if( row == -1 )
-				return std::tuple( tError::kUnbound, 0, 0 );
-			assert( Util::GT( cell_val, 0 ) );
+			int col = -1;
+			int row = -1;
+			double col_val = 0;
+			double cell_val = 0;
+			auto base = ed;
+			if( !dual )
+			{
+				std::tie( col, col_val ) = FindPivotColumn( objectivefunc );
+				if( Util::GE( col_val, 0 ) )
+					break;//done
 
+				std::tie( row, cell_val, base ) = FindPivotRow<Row>( col, st, ed );
+				if( row == -1 )
+					return std::tuple( tError::kUnbound, 0, 0 );
+				assert( Util::GT( cell_val, 0 ) );
+			}
+			else
+			{
+				double rhs = 0;
+				std::tie( row, rhs, base ) = FindDualPivotRow<Row>( st, ed );
+				if( Util::GE( rhs, 0 ) )
+					break;
+
+				std::tie( col, cell_val ) = FindDualPivotColumn( objectivefunc, *base );
+				if( col == -1 )
+					return std::tuple( tError::kInfeasible, 0, 0 );
+
+				col_val = objectivefunc[col];
+			}
+			assert( row != -1 && col != -1 && base != ed );
+			
 			base->multiply( 1.0 / cell_val );//normalize
 			assert( Util::EQ( 1, base->get_vector()[col] ) );
 
@@ -822,6 +1082,7 @@ private:
 	requires std::same_as<Equation<Row>, typename std::iterator_traits<T>::value_type>
 	std::tuple<int, double, T> FindPivotRow( const int col, T st, T ed )const
 	{
+		assert( st != ed );
 		std::vector<double> tmp;
 		T ret = ed;
 		int row = -1;
@@ -843,6 +1104,107 @@ private:
 			++idx;
 		}
 		return std::make_tuple( row, best_val, ret );
+	}
+	
+	//min of rhs, return <row,rhs,iterator>
+	template <row_type Row, typename T>
+	requires std::same_as<Equation<Row>, typename std::iterator_traits<T>::value_type>
+	std::tuple<int, double, T> FindDualPivotRow( T st, T ed )const
+	{
+		assert( st != ed );
+		auto elm = std::min_element( st, ed, [] ( auto& a, auto& b )->bool
+		{
+			return a.get_rhs() < b.get_rhs();
+		} );
+		assert( elm != ed );
+		const int row = (int)std::distance( st, elm );
+		return std::make_tuple( row, elm->get_rhs(), elm );
+	}
+
+	//return min of abs(of[i]/row[i]), <col,val>
+	template <row_type Row>
+	std::pair<int, double> FindDualPivotColumn( const Row& objectivefunc, const Equation<Row> row )const
+	{
+		int col = -1;
+		double best_coef = 0;
+		double best_coef_of = 0;
+
+		for( int idx = 0; auto e : row.get_vector() )
+		{
+			double val = 0;
+			if constexpr( std::same_as<Row, DenseRow> )
+				val = e;
+			if constexpr( std::same_as<Row, SparseRow> )
+			{
+				idx = e.first;
+				val = e.second;
+			}
+
+			//ofv[idx]/val < best_coef_of / best_coef,  ignore sign
+			const double of_val = objectivefunc[idx];
+			if( Util::LT( val, 0 ) && ( col == -1 || fabs( of_val * best_coef ) < fabs( best_coef_of * val ) ) )
+			{
+				col = idx;
+				best_coef = val;
+				best_coef_of = of_val;
+			}
+
+			++idx;
+		}
+		return std::make_pair( col, best_coef );
+	}
+
+	void AddPerturbation( double& val )const
+	{
+		static std::uniform_real_distribution<double> RandPerturbation( 0.01, 1 );
+		static_assert( sizeof( double ) >= 8 );
+		static_assert( Util::eps > PerturbationEPS );
+		val = std::fma( RandPerturbation( rng ), PerturbationEPS, val );
+	}
+
+	//remove trivial equation (always true) and check if there is invalid equation (always false)
+	template<row_type T>
+	bool EraseTrivialEquation( NonStandardFormLinearProgram<T>& input )const
+	{
+		bool hasInvalidEquation = false;
+		std::erase_if( input, [&hasInvalidEquation] ( auto& eq )->bool
+		{
+			auto [allzero, valid] = eq.check();
+			if( allzero )
+			{
+				if( !valid )
+					hasInvalidEquation = true;
+				return true;
+			}
+			return false;
+		} );
+		return hasInvalidEquation;
+	}
+
+	constexpr int GetTotalVar( int n )const noexcept
+	{
+		return n + n_slack + n_artificial_var + n_additional_constraint;
+	}
+	constexpr double SignConvert( double val, bool isMaximize )const noexcept
+	{
+		return isMaximize ? val : -val;
+	}
+	//x>=1 -> y=x-1 && y>=0
+	template <row_type T>
+	double RemoveLowerBound( const T& vec, const T& lb )const
+	{
+		return -vec.dot( lb );
+	}
+	template <row_type T>
+	void DoSubstitution( const RecoverInfo& select, Equation<T>& target )const
+	{
+		const double coef = target.get_vector()[select.var_idx];
+		if( Util::IsZero( coef ) )
+			return;
+		target.add( -coef, select.eq_substitution );
+
+		if( select.relation != tRelation::kEQ )
+			target.get_vector()[select.var_idx] = ( select.relation == tRelation::kLE ) ? -coef : coef;//use i as new var, this is new coef
 	}
 };
 
