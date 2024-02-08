@@ -53,6 +53,19 @@ T FastExponentiation( const T& base, LL exponent, Multiply mul );//General Fast 
 template <typename T, typename Multiply, typename Modulo>
 T FastExponentiation( const T& base, LL exponent, const T& mod, Multiply mul, Modulo modulo );//General Fast Exponentiation with mod
 
+struct KahanSummation
+{
+	double sum = 0;
+	double compensation = 0;
+
+	void add( double val )
+	{
+		double y = val - compensation;
+		double tmp = sum + y;
+		compensation = ( tmp - sum ) - y;
+		sum = tmp;
+	}
+};
 
 //
 //Body

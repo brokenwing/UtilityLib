@@ -25,7 +25,9 @@ struct DenseRow :public std::vector<double>
 	void add( const double coef, const SparseRow& other );
 	double dot( const DenseRow& other )const;
 	double dot( const SparseRow& other )const;
+	int getLength()const;
 	SparseRow toSparseRow()const;
+	DenseRow toDenseRow()const	{		return *this;	}
 	std::string toString( const int precision = 2 )const;
 };
 struct SparseRow :protected std::vector<std::pair<int, double>>
@@ -42,6 +44,7 @@ struct SparseRow :protected std::vector<std::pair<int, double>>
 	using raw_type::empty;
 	
 	friend struct DenseRow;
+	friend class SimplexMethod;
 
 	constexpr raw_type::const_iterator begin()const noexcept		{		return raw_type::cbegin();	}
 	constexpr raw_type::const_iterator end()const noexcept			{		return raw_type::cend();	}
@@ -78,7 +81,9 @@ struct SparseRow :protected std::vector<std::pair<int, double>>
 	void sort();
 	//sorted index, same size
 	bool check()const;
+	int getLength()const;
 	DenseRow toDenseRow( int n = 0 )const;
+	SparseRow toSparseRow()const	{		return *this;	}
 	
 	template <typename Condi>
 	void erase_if( Condi fn )
@@ -345,6 +350,7 @@ private:
 	double timelimit = std::numeric_limits<double>::max();
 	int maxiteration = INT_MAX;
 	bool use_perturbation = true;
+	bool use_revised_simplex_method = false;
 
 	int phase1_iteration = 0;
 	int phase2_iteration = 0;
@@ -375,6 +381,8 @@ public:
 
 	bool GetPerturbation()const noexcept		{		return use_perturbation;	}
 	void SetPerturbation( bool val )noexcept	{		use_perturbation = val;		}
+	
+	void SetRevisedSimplexMethod( bool val )noexcept	{		use_revised_simplex_method = val;		}
 
 	int GetPhase1Iteration()const noexcept			{		return phase1_iteration;			}
 	int GetPhase2Iteration()const noexcept			{		return phase2_iteration;			}
@@ -706,7 +714,9 @@ public:
 		//phase 2
 		assert( isValidResult( input, idxmap ) );
 		iteration = 0;
-		auto [ret_code, ret_ofv, dummy] = DoSimplexMethod( input.objectivefunc, input.begin(), input.end(), idxmap );
+		auto [ret_code, ret_ofv, dummy] = use_revised_simplex_method ? 
+			DoRevisedSimplexMethod( input.objectivefunc, input.begin(), input.end(), idxmap ) :
+			DoSimplexMethod( input.objectivefunc, input.begin(), input.end(), idxmap );
 		phase2_iteration = iteration;
 		if( ret_code == tError::kUnbound )
 			return std::make_pair( ret_code, 0 );
@@ -951,6 +961,238 @@ private:
 		return input.CheckEquation( result.begin(), result.end() );
 	};
 
+	//https://www.uobabylon.edu.iq/eprints/publication_11_20693_31.pdf
+	template <row_type Row, typename T>
+	requires std::same_as<Equation<Row>, typename std::iterator_traits<T>::value_type>
+	std::tuple<tError, double, double> DoRevisedSimplexMethod( Row& objectivefunc, T st, T ed, std::vector<int>& idxmap, Row* sync = nullptr, bool dual = false )const
+	{
+		constexpr int MAX_VECTOR_RESERVED_SIZE = 1000000;//1MB*sizeof(int,double)
+		assert( idxmap.size() == std::distance( st, ed ) );
+		if( st == ed ) [[unlikely]]
+			return std::make_tuple( tError::kOptimum, 0, 0 );
+#ifdef _DEBUG
+		if( !dual )
+		{
+			for( auto i = st; i != ed; ++i )
+				assert( Util::GE( i->get_rhs(), 0 ) );
+		}
+#endif
+		//do Perturbation
+		if( use_perturbation && !dual )
+		{
+			for( auto it = st; it != ed; ++it )
+				AddPerturbation( it->get_rhs() );
+		}
+		//
+		//transform
+		//
+		int n = objectivefunc.getLength();
+		const int m = (int)std::distance( st, ed );
+		Equation<SparseRow> compressed_of;
+		std::vector<Equation<SparseRow>> basis_matrix;//m*m
+		std::vector<Equation<SparseRow>> source_matrix;//input^T (n*m)
+		std::vector<typename decltype( source_matrix )::iterator> nonbasis;
+		std::vector<bool> isBasis;
+
+		//calc n
+		for( auto it = st; it != ed; ++it )
+			n = std::max( n, it->get_vector().getLength() );
+
+		//calc isbasis
+		isBasis.resize( n, false );
+		for( int idx : idxmap )
+			isBasis[idx] = true;
+
+		//build matrix
+		assert( n > 0 );
+		assert( m > 0 );
+		basis_matrix.resize( m );
+		source_matrix.resize( n );
+		const int avg_length = std::min( MAX_VECTOR_RESERVED_SIZE / n + 1, m );//control max memory cost
+		assert( avg_length > 0 );
+		for( auto& e : source_matrix )
+			e.get_vector().reserve( avg_length );//at worst 2*org space
+
+		std::vector<std::pair<int, int>> q;//<var pos, row idx>
+		q.reserve( m );
+		for( int idx = 0; int x : idxmap )
+			q.emplace_back( x, idx++ );
+		std::sort( q.begin(), q.end() );
+		std::vector<int> varpos2rank;
+		varpos2rank.resize( n, -1 );
+		for( int idx = 0; auto [x, y] : q )
+			varpos2rank[x] = idx++;
+		{
+			int row_idx = 0;
+			SparseRow cache;
+			cache.reserve( idxmap.size() );
+			for( auto it = st; it != ed; ++it )
+			{
+				auto cur_basis = basis_matrix.begin() + row_idx;
+				cur_basis->get_rhs() = it->get_rhs();
+				cache.clear();
+				for( auto [idx, val] : it->get_vector().toSparseRow() )
+				{
+					assert( !Util::IsZero( val ) );
+					if( isBasis[idx] )
+					{
+						assert( varpos2rank[idx] != -1 );
+						cache.emplace_back( varpos2rank[idx], val );//copy row
+					}
+					source_matrix[idx].get_vector().emplace_back( row_idx, val );//transpose
+				}
+				cur_basis->get_vector().reserve( cache.size() );
+				for( auto [idx, val] : cache )
+					cur_basis->get_vector().emplace_back( idx, val );
+				cur_basis->get_vector().sort();
+				assert( cur_basis->get_vector().check() );
+				++row_idx;
+			}
+		}
+		compressed_of.get_vector().reserve( m );
+		compressed_of.get_rhs() = 0;
+		for( auto [idx, val] : objectivefunc.toSparseRow() )
+		{
+			assert( !Util::IsZero( val ) );
+			if( isBasis[idx] )
+			{
+				assert( varpos2rank[idx] != -1 );
+				compressed_of.get_vector().emplace_back( varpos2rank[idx], val );//copy row
+			}
+			source_matrix[idx].get_rhs() = val;//transpose
+		}
+		compressed_of.get_vector().sort();
+		assert( compressed_of.get_vector().check() );
+		//todo sync
+
+		//
+		//start
+		//
+		std::vector<double> colval_cache;
+		colval_cache.reserve( m );
+		while( !isTerminated() )
+		{
+			++iteration;
+
+			int col = -1;
+			int row = -1;
+			double col_val = 0;
+			double cell_val = 0;
+			auto org_vec = source_matrix.end();
+			auto base = basis_matrix.end();
+			if( !dual )
+			{
+				//FindPivotColumn
+				for( int idx = 0; auto & eq : source_matrix )
+				{
+					if( !isBasis[idx] )
+					{
+						double val = compressed_of.get_vector().dot( eq.get_vector() );
+						val += eq.get_rhs();
+						if( col == -1 || Util::LT( val, col_val ) )
+						{
+							col = idx;
+							col_val = val;
+						}
+					}
+					++idx;
+				}
+				if( col == -1 || Util::GE( col_val, 0 ) )
+					break;//done
+				org_vec = source_matrix.begin() + col;
+
+				//FindPivotRow
+				double tmp_rhs = 0;
+				colval_cache.clear();
+				for( int idx = 0; auto & eq : basis_matrix )
+				{
+					const double val = org_vec->get_vector().dot( eq.get_vector() );
+					colval_cache.emplace_back( val );
+					//rhs/val < best
+					if( Util::GT( val, 0 ) && ( row == -1 || eq.get_rhs() * cell_val < val * tmp_rhs ) )
+					{
+						row = idx;
+						tmp_rhs = eq.get_rhs();
+						cell_val = val;
+					}
+					++idx;
+				}
+				if( row == -1 )
+					return std::tuple( tError::kUnbound, 0, 0 );
+				base = basis_matrix.begin() + row;
+				assert( Util::GT( cell_val, 0 ) );
+			}
+			else
+			{
+				//todo dual
+			}
+			assert( row != -1 && col != -1 && base != basis_matrix.end() );
+			
+			base->multiply( 1.0 / cell_val );//normalize
+			assert( Util::EQ( 1, colval_cache[row] / cell_val ) );
+			
+			const double coef = -( org_vec->get_vector().dot( compressed_of.get_vector() ) + org_vec->get_rhs() );
+			compressed_of.add( coef, *base );
+
+			isBasis[idxmap[row]] = false;
+			idxmap[row] = col;
+			isBasis[col] = true;
+
+			//remove row if non-zero <i,col>
+			auto val_ptr = colval_cache.begin();
+			for( auto i = basis_matrix.begin(); i != basis_matrix.end(); ++i )
+			{
+				const double val = *( val_ptr++ );
+				if( i == base || Util::IsZero( val ) )
+					continue;
+				i->add( -val, *base );
+			}
+		}
+		//set result
+		{
+			assert( m == (int)idxmap.size() );
+
+			SparseRow cache;
+			int row_idx = 0;
+			for( auto it = st; it != ed; ++it )
+			{
+				auto cur_basis = basis_matrix.begin() + row_idx;
+				
+				cache.clear();
+				for( int idx = 0; auto & eq : source_matrix )
+				{
+					cache.emplace_back( idx, cur_basis->get_vector().dot( eq.get_vector() ) );
+					++idx;
+				}
+				assert( cache.check() );
+				if constexpr( std::same_as<Row, DenseRow> )
+					it->get_vector() = cache.toDenseRow();
+				if constexpr( std::same_as<Row, SparseRow> )
+					it->get_vector() = cache;
+				it->get_rhs() = cur_basis->get_rhs();
+				++row_idx;
+			}
+			//of
+			cache.clear();
+			for( int idx = 0; auto & eq : source_matrix )
+			{
+				const double val = compressed_of.get_vector().dot( eq.get_vector() ) + eq.get_rhs();
+				if( !Util::IsZero( val ) )
+				{
+					cache.emplace_back( idx, val );
+				}
+				++idx;
+			}
+			assert( cache.check() );
+			if constexpr( std::same_as<Row, DenseRow> )
+				objectivefunc = cache.toDenseRow();
+			if constexpr( std::same_as<Row, SparseRow> )
+				objectivefunc = cache;
+		}
+
+		return { tError::kOptimum,compressed_of.get_rhs(),0 };
+	}
+
 	//Assume Maximization, non-negative variable, equation, non-negative rhs
 	//return <status,ofv,sync ofv> and idxmap (base var idx idxmap[i] on constraint i)
 	//modify equation and OF, sync does the same transform as OF
@@ -961,7 +1203,6 @@ private:
 		assert( idxmap.size() == std::distance( st, ed ) );
 		if( st == ed ) [[unlikely]]
 			return std::make_tuple( tError::kOptimum, 0, 0 );
-
 #ifdef _DEBUG
 		if( !dual )
 		{

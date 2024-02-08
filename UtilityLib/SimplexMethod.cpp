@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "SimplexMethod.h"
+#include "Mathematics.h"
 
 using namespace Util::ORtool;
 
@@ -33,19 +34,24 @@ void Util::ORtool::DenseRow::add( const double coef, const SparseRow& other )
 
 double Util::ORtool::DenseRow::dot( const DenseRow& other ) const
 {
-	double ret = 0;
+	Util::Math::KahanSummation ks;
 	auto x = begin();
 	auto y = other.begin();
 	for( ; x != end() && y != other.end(); ++x, ++y )
 	{
-		ret += *x * *y;
+		ks.add( *x * *y );
 	}
-	return ret;
+	return ks.sum;
 }
 
 double Util::ORtool::DenseRow::dot( const SparseRow& other ) const
 {
 	return other.dot( *this );
+}
+
+int Util::ORtool::DenseRow::getLength() const
+{
+	return static_cast<int>( size() );
 }
 
 SparseRow Util::ORtool::DenseRow::toSparseRow() const
@@ -147,7 +153,7 @@ double Util::ORtool::SparseRow::dot( const SparseRow& other ) const
 {
 	assert( check() );
 	assert( other.check() );
-	double ret = 0;
+	Util::Math::KahanSummation ks;
 	auto x = raw_type::cbegin();
 	auto y = other.raw_type::cbegin();
 	//merge sort
@@ -155,7 +161,7 @@ double Util::ORtool::SparseRow::dot( const SparseRow& other ) const
 	{
 		if( x->first == y->first )
 		{
-			ret += x->second * y->second;
+			ks.add( x->second * y->second );
 			++x;
 			++y;
 		}
@@ -164,17 +170,17 @@ double Util::ORtool::SparseRow::dot( const SparseRow& other ) const
 		else
 			++y;
 	}
-	return ret;
+	return ks.sum;
 }
 
 double Util::ORtool::SparseRow::dot( const DenseRow& other ) const
 {
 	assert( check() );
 	assert( other.check() );
-	double ret = 0;
+	Util::Math::KahanSummation ks;
 	for( auto [idx, val] : *this )
-		ret += other[idx] * val;
-	return ret;
+		ks.add( other[idx] * val );
+	return ks.sum;
 }
 
 double Util::ORtool::SparseRow::operator[]( const int target )const
@@ -251,6 +257,11 @@ bool Util::ORtool::SparseRow::check() const
 		if( x->first == y->first )
 			return false;
 	return true;
+}
+
+int Util::ORtool::SparseRow::getLength() const
+{
+	return this->empty() ? 0 : ( this->back().first + 1 );
 }
 
 DenseRow Util::ORtool::SparseRow::toDenseRow( int n ) const

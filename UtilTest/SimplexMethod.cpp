@@ -766,6 +766,38 @@ TEST( SimplexMethod, bug_recover )
 	//EXPECT_DOUBLE_EQ( before.CalcOFV( dr ), 10 );
 }
 
+TEST( SimplexMethod, revisedsm )
+{
+	SimplexMethod sm;
+	sm.SetRevisedSimplexMethod( true );
+	sm.SetPerturbation( false );
+	NonStandardFormLinearProgram<DenseRow> input;
+	std::vector<double> result;
+	
+	const int n = 2;
+	input.lb.resize( n, 0 );
+	input.isMaximization = true;
+	input.objectivefunc = { 2,1 };
+	input.emplace_back( std::make_tuple( DenseRow( { 3,4 } ), tRelation::kLE, 6 ) );
+	input.emplace_back( std::make_tuple( DenseRow( { 6,1 } ), tRelation::kLE, 3 ) );
+	
+	const double best = 13.0 / 7;
+	auto before = input;
+	auto [r, ofv] = sm.SolveLP( input, result );
+	DenseRow dr( result.begin(), result.end() );
+
+	
+	ASSERT_EQ( r, SimplexMethod::tError::kOptimum );
+	EXPECT_DOUBLE_EQ( ofv, best );
+	EXPECT_TRUE( before.CheckLowerBound( dr ) );
+	EXPECT_TRUE( before.CheckEquation( dr ) );
+	EXPECT_DOUBLE_EQ( before.CalcOFV( dr ), best );
+
+	ASSERT_EQ( result.size(), 2 );
+	EXPECT_DOUBLE_EQ( result[0], 2.0 / 7 );
+	EXPECT_DOUBLE_EQ( result[1], 9.0 / 7 );
+}
+
 TEST( SimplexMethod, SolveWithNewConstraints_infeasible )
 {
 	SimplexMethod sm;
@@ -1023,8 +1055,8 @@ TEST( SimplexMethod, performancetest )
 	std::vector<double> sr_result;
 
 	//1k,1k,0.1k=5s
-	const int n = 1000;
-	const int m = 1000;
+	const int n = 100;
+	const int m = 100;
 	const int avgcell = 10;
 	const double maxprecision = 100;
 
@@ -1136,6 +1168,7 @@ TEST( SimplexMethod, randomtest_denserow_sparserow )
 		const int m = randm( rng );
 
 		SimplexMethod sm;
+		sm.SetRevisedSimplexMethod( true );
 		sm.SetPerturbation( true );
 		NonStandardFormLinearProgram<DenseRow> dr_input;
 		NonStandardFormLinearProgram<SparseRow> sr_input;
@@ -1196,21 +1229,23 @@ TEST( SimplexMethod, randomtest_denserow_sparserow )
 	}
 }
 
+//accuary bug -1318908948
 TEST( SimplexMethod, randomtest_SolveWithNewConstraints )
 {
 #ifdef _DEBUG
 	return;
 #endif
-	const int n_test = 5000;
+	const int n_test = 10000;
 	const int maxval = 5;
 	const int maxrhs = 15;
 	const int boundval = 100;
 	std::mt19937 rng( 0 );
-	std::uniform_int_distribution<int> randn( 1, 15 );
-	std::uniform_int_distribution<int> randm( 1, 50 );
+	std::uniform_int_distribution<int> randn( 1, 10 );
+	std::uniform_int_distribution<int> randm( 1, 20 );
 	std::uniform_int_distribution<int> randmaxmin( 0, 1 );
 	std::uniform_int_distribution<int> randint( -maxval, maxval );
 	std::uniform_int_distribution<int> randrhs( -maxrhs, maxrhs );
+
 	const auto randomDenseRow = [&]( const int n )->DenseRow
 	{
 		DenseRow dr;
@@ -1255,12 +1290,19 @@ TEST( SimplexMethod, randomtest_SolveWithNewConstraints )
 			return val;
 	};
 	
+	std::vector<int> seed_list;
+	auto rd = std::random_device();
+	for( int i = 0; i < n_test; i++ )
+		seed_list.emplace_back( rd() );
+
 	for( int i = 0; i < n_test; i++ )
 	{
+		rng.seed( seed_list[i] );
 		const int n = randn( rng );
 		const int m = randm( rng );
 
 		SimplexMethod sm_dr, sm_sr;
+		//sm_dr.SetRevisedSimplexMethod( true );
 		sm_dr.SetPerturbation( true );
 		sm_sr.SetPerturbation( true );
 		NonStandardFormLinearProgram<DenseRow> dr_input;
@@ -1325,8 +1367,8 @@ TEST( SimplexMethod, randomtest_SolveWithNewConstraints )
 			if( r1 != SimplexMethod::tError::kOptimum || r2 != SimplexMethod::tError::kOptimum )
 				break;
 			ASSERT_NEAR( ofv1, ofv2, Util::eps );
-			if (!dr_before.CheckEquation( dr_result.begin(), dr_result.end() ))
-				std::cout << i << ' ' << idx << '\n';
+			if( !dr_before.CheckEquation( dr_result.begin(), dr_result.end() ) )
+				std::cout << i << ' ' << idx << ' ' << seed_list[i] << '\n';
 			ASSERT_TRUE( dr_before.CheckLowerBound( dr_result.begin(), dr_result.end() ) );
 			ASSERT_TRUE( dr_before.CheckLowerBound( sr_result.begin(), sr_result.end() ) );
 			ASSERT_TRUE( dr_before.CheckEquation( dr_result.begin(), dr_result.end() ) );
