@@ -123,6 +123,11 @@ TEST( Util, Ceil_double )
 	EXPECT_DOUBLE_EQ( Ceil( 10 + eps * EPS_UP ), 11 );
 }
 
+TEST( Util, Ceil_double_neg )
+{
+	EXPECT_DOUBLE_EQ( Ceil( -2.5 ), -2 );
+}
+
 TEST( Util, SHL )
 {
 	EXPECT_EQ( shl( 0b001, 1 ), 0b010 );
