@@ -211,9 +211,13 @@ public:
 		//std::cout << Print();
 
 		result = best_result;
-		for( int i = 0; i < n; i++ )
-			if( input.int_range[i].has_value() )
-				result[i] = std::round( result[i] );//round to int
+		if( !result.empty() )
+		{
+			for( int i = 0; i < n; i++ )
+				if( input.int_range[i].has_value() )
+					result[i] = std::round( result[i] );//round to int
+			assert( input.CheckEquation( DenseRow( result.begin(), result.end() ).toSparseRow() ) );
+		}
 
 		if( best_result.empty() )
 			return std::make_pair( tError::kFail, 0 );

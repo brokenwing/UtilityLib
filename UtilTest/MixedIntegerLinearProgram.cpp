@@ -74,6 +74,73 @@ TEST( MixedIntegerLinearProgram, easy2 )
 	EXPECT_NEAR( result[1], 0, Util::eps );
 	EXPECT_NEAR( result[2], 2, Util::eps );
 }
+//data https://developers.google.com/optimization/mip/mip_example?hl=zh-cn
+TEST( MixedIntegerLinearProgram, easy3 )
+{
+	MixedIntegerLinearProgramSolver milp;
+	NonStandardFormMixedIntegerLinearProgram<SparseRow> prob;
+	std::vector<double> result;
+
+	const int n = 2;
+	prob.lb.resize( n, 0 );
+	prob.isMaximization = true;
+	prob.objectivefunc = DenseRow( {1,10} ).toSparseRow();
+	prob.int_range.resize( n );
+	prob.int_range[0] = { 0,3 };
+	prob.int_range[1] = { 0,100 };
+	for( int i = 0; i < n; i++ )
+	{
+		SparseRow sr;
+		sr[i] = 1;
+		prob.emplace_back( Equation<SparseRow>( sr, tRelation::kLE, prob.int_range[i].value().second ) );
+	}
+	prob.emplace_back( Equation<DenseRow>( { 1,7 }, tRelation::kLE, 17.5 ).toSparseEquation() );
+
+	milp.SetMaxIteration( 100 );
+	milp.SetTimelimit( 3600 );
+	auto [r, ofv] = milp.SolveMILP( prob, result );
+
+	EXPECT_EQ( r, MixedIntegerLinearProgramSolver::tError::kSuc );
+	EXPECT_NEAR( ofv, 23, Util::eps );
+	ASSERT_EQ( result.size(), n );
+	EXPECT_NEAR( result[0], 3, Util::eps );
+	EXPECT_NEAR( result[1], 2, Util::eps );
+}
+//more than 1 solution, data from https://developers.google.com/optimization/mip/mip_var_array?hl=zh-cn
+TEST( MixedIntegerLinearProgram, normal1 )
+{
+	MixedIntegerLinearProgramSolver milp;
+	NonStandardFormMixedIntegerLinearProgram<SparseRow> prob;
+	std::vector<double> result;
+
+	const int n = 5;
+	prob.lb.resize( n, 0 );
+	prob.isMaximization = true;
+	prob.objectivefunc = DenseRow( {7,8,2,9,6} ).toSparseRow();
+	prob.int_range.resize( n );
+	for( int i = 0; i < n; i++ )
+		prob.int_range[i] = { 0,100 };
+	for( int i = 0; i < n; i++ )
+	{
+		SparseRow sr;
+		sr[i] = 1;
+		prob.emplace_back( Equation<SparseRow>( sr, tRelation::kLE, prob.int_range[i].value().second ) );
+	}
+	prob.emplace_back( Equation<DenseRow>( { 5,7,9,2,1 }, tRelation::kLE, 250 ).toSparseEquation() );
+	prob.emplace_back( Equation<DenseRow>( { 18,4,-9,10,12 }, tRelation::kLE, 285 ).toSparseEquation() );
+	prob.emplace_back( Equation<DenseRow>( { 4,7,3,8,5 }, tRelation::kLE, 211 ).toSparseEquation() );
+	prob.emplace_back( Equation<DenseRow>( { 5,13,16,3,-7 }, tRelation::kLE, 315 ).toSparseEquation() );
+
+	milp.SetMaxIteration( 500 );
+	milp.SetTimelimit( 3600 );
+	auto [r, ofv] = milp.SolveMILP( prob, result );
+
+	auto sr = DenseRow( result.begin(), result.end() ).toSparseRow();
+	EXPECT_EQ( r, MixedIntegerLinearProgramSolver::tError::kSuc );
+	EXPECT_TRUE( prob.CheckEquation( sr ) );
+	EXPECT_NEAR( ofv, 260, Util::eps );
+	ASSERT_EQ( result.size(), n );
+}
 TEST( MixedIntegerLinearProgram, knapsack01_1 )
 {
 	MixedIntegerLinearProgramSolver milp;
@@ -265,4 +332,153 @@ TEST( MixedIntegerLinearProgram, gap_1 )
 	EXPECT_EQ( res2job[2], 1 );
 	EXPECT_EQ( res2job[3], 0 );
 	EXPECT_EQ( res2job[4], -1 );
+}
+
+//check by enumerating solution (all int)
+TEST( MixedIntegerLinearProgram, randomtest )
+{
+#ifdef _DEBUG
+	return;
+#endif
+	const int n_test = 1000;
+	const int max_enumeration = 1000;
+	const int var_upperbound = 10;
+	const int maxval = 20;
+	const int maxrhs = 100;
+	bool valid_first = false;
+	std::mt19937 rng( 0 );
+	std::uniform_int_distribution<int> randupperbound( 1, var_upperbound );
+	std::uniform_int_distribution<int> randm( 1, 20 );
+	std::uniform_int_distribution<int> randmaxmin( 0, 1 );
+	std::uniform_int_distribution<int> randint( ( valid_first ? 0 : -maxval ), maxval );
+	std::uniform_int_distribution<int> randrhs( ( valid_first ? 0 : -maxrhs ), maxrhs );
+	const auto randomDenseRow = [&]( const int n )->DenseRow
+	{
+		DenseRow dr;
+		dr.reserve( n );
+		for( int i = 0; i < n; i++ )
+			dr.emplace_back( randint( rng ) );
+		return dr;
+	};
+	const auto randRelation = [&rng,valid_first] ()->tRelation
+	{
+		std::uniform_int_distribution<int> randx( ( valid_first ? 3 : 1 ), 3 );
+		switch( randx( rng ) )
+		{
+		case 1:
+			return tRelation::kEQ;
+		case 2:
+			return tRelation::kGE;
+		case 3:
+			return tRelation::kLE;
+		default:
+			assert( 0 );
+			break;
+		}
+		assert( 0 );
+		return tRelation::kEQ;
+	};
+	const auto randomEquation = [&]( const int n )->Equation<DenseRow>
+	{
+		Equation<DenseRow> eq;
+		eq.get_vector() = randomDenseRow( n );
+		eq.get_relation() = randRelation();
+		eq.get_rhs() = randrhs( rng );
+		return eq;
+	};
+
+	for( int i = 0; i < n_test; i++ )
+	{
+		int n = 0;
+		const int m = randm( rng );
+
+		std::vector<int> upperbound;
+		int product = max_enumeration;
+		while( product > 1 )
+		{
+			int x = randupperbound( rng );
+			x = std::min( product - 1, x );
+			assert( x > 0 );
+			upperbound.emplace_back( x );
+			product /= x + 1;
+		}
+		n = (int)upperbound.size();
+		assert( n > 0 );
+
+		MixedIntegerLinearProgramSolver milp;
+		NonStandardFormMixedIntegerLinearProgram<SparseRow> prob;
+		std::vector<double> result;
+
+		prob.lb.resize( n, 0 );
+		prob.isMaximization = randmaxmin( rng );
+		prob.objectivefunc = randomDenseRow( n ).toSparseRow();
+		prob.int_range.resize( n );
+		for( int j = 0; j < n; j++ )
+			prob.int_range[j] = { 0,upperbound[j] };
+		for( int j = 0; j < n; j++ )
+		{
+			SparseRow sr;
+			sr[j] = 1;
+			prob.emplace_back( Equation<SparseRow>( sr, tRelation::kLE, prob.int_range[j].value().second ) );
+		}
+		for( int j = 0; j < m; j++ )
+			prob.emplace_back( randomEquation( n ).toSparseEquation() );
+
+		//solve by milp
+		milp.SetMaxIteration( max_enumeration / 10 );
+		milp.SetTimelimit( 3 );
+		auto [r, ofv] = milp.SolveMILP( prob, result );
+
+		//solve by brute
+		std::vector<int> cur, best_sol;
+		cur.resize( n, 0 );
+		double best_val = 0;
+		while( true )
+		{
+			DenseRow dr;
+			dr.assign( cur.begin(), cur.end() );
+			auto sr = dr.toSparseRow();
+			bool ok = prob.CheckEquation( sr );
+			if( ok )
+			{
+				double val = prob.objectivefunc.dot( dr );
+				if( best_sol.empty() || ( prob.isMaximization ? Util::GT( val, best_val ) : Util::LT( val, best_val ) ) )
+				{
+					best_sol = cur;
+					best_val = val;
+				}
+			}
+
+			if( 0 )
+			{
+				std::cout << ok << ':';
+				for( int x : cur )
+					std::cout << ' ' << x;
+				std::cout << '\n';
+			}
+
+			//next
+			bool flag = true;
+			for( int j = 0; j < n; j++ )
+			{
+				cur[j] = ( cur[j] + 1 ) % ( upperbound[j] + 1 );
+				if( cur[j] != 0 )
+					break;
+				if( cur[j] == 0 && j == n - 1 )
+					flag = false;
+			}
+			if( !flag )
+				break;
+		}
+
+		if( best_sol.empty() )
+		{
+			ASSERT_EQ( r, MixedIntegerLinearProgramSolver::tError::kFail );
+			continue;
+		}
+		else
+			ASSERT_EQ( r, MixedIntegerLinearProgramSolver::tError::kSuc );
+		
+		ASSERT_NEAR( best_val, ofv, Util::eps );
+	}
 }
