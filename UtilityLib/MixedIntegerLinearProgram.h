@@ -83,6 +83,7 @@ private:
 	};
 	int cnt_node = 0;
 	int n = 0;//var number
+	TreeNode* root = nullptr;
 	std::list<TreeNode> candidate;
 	using TreeIter = typename decltype( candidate )::iterator;
 	std::vector<TreeIter> heap;
@@ -105,7 +106,7 @@ public:
 	}
 
 	template <row_type T>
-	std::pair<tError, double> SolveMILP( NonStandardFormMixedIntegerLinearProgram<T>& input, std::vector<double>& result )
+	std::pair<tError, double> SolveMILP( const NonStandardFormMixedIntegerLinearProgram<T>& input, std::vector<double>& result )
 	{
 		if( input.empty() )
 			return std::make_pair( tError::kFail, 0 );
@@ -121,22 +122,22 @@ public:
 
 			candidate.clear();
 			heap.clear();
-			auto& root = candidate.emplace_back();
+			root = &candidate.emplace_back();
 
 			//initial build
-			root.idx = cnt_node++;
-			root.range = input.int_range;
-			root.data.lb = input.lb;
-			root.data.objectivefunc = input.objectivefunc.toSparseRow();
+			root->idx = cnt_node++;
+			root->range = input.int_range;
+			root->data.lb = input.lb;
+			root->data.objectivefunc = input.objectivefunc.toSparseRow();
 			for( auto& e : input )
-				root.data.emplace_back() = e.toSparseEquation();
-			root.sm.SetPerturbation( true );
-			root.sm.SetSeed( 0 );
-			root.sm.SetTimelimit( timelimit );
-			auto [r, ofv] = root.sm.SolveLP( input, root.result );
-			root.ofv = ofv;
-			root.status = r;
-			if( root.sm.isTerminated() )
+				root->data.emplace_back() = e.toSparseEquation();
+			root->sm.SetPerturbation( true );
+			root->sm.SetSeed( 0 );
+			root->sm.SetTimelimit( timelimit );
+			auto [r, ofv] = root->sm.SolveLP( root->data, root->result );
+			root->ofv = ofv;
+			root->status = r;
+			if( root->sm.isTerminated() )
 				return { tError::kInitialLPtimeout,0 };
 			if( r != SimplexMethod::tError::kOptimum )
 				return { tError::kFail,0 };//todo
@@ -158,6 +159,10 @@ public:
 		//std::cout << Print();
 
 		result = best_result;
+		for( int i = 0; i < n; i++ )
+			if( input.int_range[i].has_value() )
+				result[i] = std::round( result[i] );//round to int
+
 		if( best_result.empty() )
 			return std::make_pair( tError::kFail, 0 );
 		else
@@ -250,6 +255,7 @@ private:
 	{
 		return Util::GT( a->priority, b->priority );
 	}
+
 	//if LP result worse than best, skip
 	bool isWorseThanBest( const TreeNode& p )const
 	{
@@ -262,22 +268,64 @@ private:
 		}
 		return false;
 	}
-
+	std::vector<Equation<SparseRow>> GetConstraintSequence( const TreeNode* p )const
+	{
+		std::vector<Equation<SparseRow>> ret;
+		SparseRow sr;
+		while( p && p != root )
+		{
+			sr.clear();
+			sr[p->split_var_idx] = 1;
+			Equation<SparseRow> new_constraint( sr, p->condition, p->split_value );
+			ret.emplace_back( new_constraint );
+			p = p->parent;
+		}
+		std::reverse( ret.begin(), ret.end() );
+		return ret;
+	}
 	bool CalcPriority( TreeNode& p )
 	{
+		constexpr bool isTest = false;
 #ifdef _DEBUG
 		auto before_data = p.data;
 #endif
-		SparseRow sr;
-		sr[p.split_var_idx] = 1;
-		Equation<SparseRow> new_constraint( sr, p.condition, p.split_value );
-		//if( p.idx == 29 )
-			//puts( "" );
-		auto [r, val] = p.sm.SolveWithNewConstraints( p.data, p.result, new_constraint );
-		p.priority = val;
-		p.ofv = val;
+		if constexpr( !isTest )
+		{
+			SparseRow sr;
+			sr[p.split_var_idx] = 1;
+			Equation<SparseRow> new_constraint( sr, p.condition, p.split_value );
+			auto [r, val] = p.sm.SolveWithNewConstraints( p.data, p.result, new_constraint );
+			p.priority = p.ofv = val;
+			return r == SimplexMethod::tError::kOptimum;
+		}
+		else//for debug
+		{
+			auto seq = GetConstraintSequence( &p );
+			//p.data = root->data;
+			//p.data.insert( p.data.end(), seq.begin(), seq.end() );
+			//auto [r1, val1] = p.sm.SolveLP( p.data, p.result );//std
+			
+			auto tmp = p;
+			tmp.data = root->data;
+			tmp.sm.SolveLP( tmp.data, tmp.result );
+			//auto [r2, val2] = tmp.sm.SolveWithNewConstraints( tmp.data, tmp.result, seq.begin(), seq.end() );
+			SimplexMethod::tError r2;
+			double val2;
+			for( auto& eq : seq )
+			{
+				tmp.sm.SetSeed( 0 );
+				auto [x, y] = tmp.sm.SolveWithNewConstraints( tmp.data, tmp.result, eq );
+				r2 = x;
+				val2 = y;
+			}
 
-		return r == SimplexMethod::tError::kOptimum;
+			//if( r1 != r2 || Util::NEQ( val1, val2 ) )
+				//PrintNode( p );
+
+			p = tmp;
+			p.priority = p.ofv = val2;
+			return r2 == SimplexMethod::tError::kOptimum;
+		}
 	}
 	bool UpdateSolution( const TreeNode& p )
 	{
