@@ -2,6 +2,7 @@
 #include "SimplexMethod.h"
 
 #include <vector>
+#include <queue>
 #include <deque>
 #include <optional>
 #include <assert.h>
@@ -55,17 +56,30 @@ public:
 		kFail,
 		kFinish,
 	};
-private:
-	int maxiteration = INT_MAX;
-	double timelimit = 10;
-	Timer time;
-	int iteration = 0;
+	struct SolutionStamp
+	{
+		double ofv = 0;
+		double time_stamp = 0;
+		std::int64_t lp_iteration_stamp = 0;
+		int iteration_stamp = 0;
+	};
+	using SolutionStampList = std::deque<SolutionStamp>;
 
+private:
+	Timer time;
+	double timelimit = 10;
+	int maxiteration = INT_MAX;
+	int iteration = 0;
+	std::int64_t lp_iteration = 0;
+
+	SolutionStampList solution_stamp_list;
 	std::vector<double> best_result;
 	double best_ofv = 0;
 
 	struct TreeNode
 	{
+		static constexpr int MAX_CHILD = 2;
+
 		NonStandardFormLinearProgram<SparseRow> data;
 		SimplexMethod sm;
 		std::vector<double> result;
@@ -74,37 +88,71 @@ private:
 		SimplexMethod::tError status = SimplexMethod::tError::kInfeasible;
 
 		int idx = -1;
+		int cnt_child = 0;
 		TreeNode* parent = nullptr;
+		TreeNode* child[MAX_CHILD];
 		double priority = 1;//big
 
+		Equation<SparseRow> constraint;
 		int split_var_idx = -1;
 		int split_value = 0;
 		tRelation condition = tRelation::kEQ;
+
+		bool isExpanded = false;//inside heap or not
+		bool isReleased = false;//as long as we have constraint, we can reconstruct the data
+
+		TreeNode()
+		{
+			std::memset( child, 0, sizeof( child ) );
+		}
+
+		void AddChild( TreeNode* p )
+		{
+			if( p && cnt_child < MAX_CHILD ) [[likely]]
+				child[cnt_child++] = p;
+			else
+				assert( 0 );
+		}
+		//clear unnecessary data
+		void Release()
+		{
+			assert( !isExpanded );
+			isReleased = true;
+			data.Clear();
+			sm.Clear();
+			result.clear();
+			range.clear();
+		}
+		Equation<SparseRow> GetConstraint()const
+		{
+			SparseRow sr;
+			sr[split_var_idx] = 1;
+			return Equation<SparseRow>( sr, condition, split_value );
+		}
 	};
-	int cnt_node = 0;
+	using TreeIter = std::list<TreeNode>::iterator;
+
+	int cnt_node = 0;//index of candidate
 	int n = 0;//var number
 	TreeNode* root = nullptr;
 	std::list<TreeNode> candidate;
-	using TreeIter = typename decltype( candidate )::iterator;
-	std::vector<TreeIter> heap;
+	std::vector<TreeIter> heap;//expand priority
+
+	//todo memory management
 
 public:
 	MixedIntegerLinearProgramSolver()
 	{}
-	void SetTimelimit( double val )noexcept
-	{
-		timelimit = val;
-	}
-	void SetMaxIteration( int val )noexcept
-	{
-		maxiteration = val;
-	}
+	const SolutionStampList& GetSolutionStampList()const noexcept	{		return solution_stamp_list;	}
+	void SetTimelimit( double val )noexcept	{		timelimit = val;	}
+	void SetMaxIteration( int val )noexcept	{		maxiteration = val;	}
 
 	bool isTerminated()const
 	{
 		return iteration >= maxiteration || time.GetTime() >= timelimit;
 	}
 
+	//assume no INF solution
 	template <row_type T>
 	std::pair<tError, double> SolveMILP( const NonStandardFormMixedIntegerLinearProgram<T>& input, std::vector<double>& result )
 	{
@@ -112,6 +160,7 @@ public:
 			return std::make_pair( tError::kFail, 0 );
 		try
 		{
+			solution_stamp_list.clear();
 			cnt_node = 0;
 			time.SetTime();
 			n = (int)input.lb.size();
@@ -119,6 +168,7 @@ public:
 			best_result.clear();
 			best_ofv = 0;
 			iteration = 0;
+			lp_iteration = 0;
 
 			candidate.clear();
 			heap.clear();
@@ -142,6 +192,7 @@ public:
 				return { tError::kInitialLPtimeout,0 };
 			if( r != SimplexMethod::tError::kOptimum )
 				return { tError::kFail,0 };//todo
+			lp_iteration = root->sm.GetTotalIteration();
 
 			heap.emplace_back( candidate.begin() );
 
@@ -170,52 +221,7 @@ public:
 			return std::make_pair( tError::kSuc, best_ofv );
 	}
 
-	tError do_iteration()
-	{
-		if( heap.empty() )
-			return tError::kFinish;
-
-		auto top = heap.front();
-		std::pop_heap( heap.begin(), heap.end(), TreeNodeCompare );
-		heap.pop_back();
-
-		if( isWorseThanBest( *top ) )
-			return tError::kSuc;
-
-		const int varidx = FindNextVarIdx( *top );
-		if( varidx == -1 )
-		{
-			const bool ok = UpdateSolution( *top );
-			assert( ok );
-		}
-		else
-		{
-			const double splitval = top->result[varidx];
-
-			assert( top->range[varidx].has_value() );
-			auto& range = top->range[varidx].value();
-			assert( range.first <= range.second );
-
-			int ub = static_cast<int>( Util::Ceil( top->result[varidx] ) );
-			ub += Util::EQ( ub, splitval );
-			assert( Util::GE( ub, top->result[varidx] ) );
-
-			int lb = static_cast<int>( Util::Floor( top->result[varidx] ) );
-			lb -= Util::EQ( lb, splitval );
-			assert( Util::LE( lb, top->result[varidx] ) );
-
-			if( lb >= range.first )
-			{
-				auto p = GenerateNewNode( *top, varidx, lb, tRelation::kLE, range.first );
-			}
-			if( ub <= range.second )
-			{
-				auto p = GenerateNewNode( *top, varidx, ub, tRelation::kGE, range.second );
-			}
-		}
-
-		return tError::kSuc;
-	}
+	tError do_iteration();
 
 	std::string Print()const
 	{
@@ -227,6 +233,17 @@ public:
 		}
 		return ss.str();
 	}
+
+private:
+	static bool isInt( double val )
+	{
+		return Util::IsZero( val - std::round( val ) );
+	}
+	static bool TreeNodeCompare( TreeIter a, TreeIter b )
+	{
+		return Util::GT( a->priority, b->priority );
+	}
+
 	std::string PrintNode( const TreeNode& p )const
 	{
 		std::ostringstream ss;
@@ -247,16 +264,6 @@ public:
 		return ss.str();
 	}
 
-private:
-	static bool isInt( double val )
-	{
-		return Util::IsZero( val - std::round( val ) );
-	}
-	static bool TreeNodeCompare( TreeIter a, TreeIter b )
-	{
-		return Util::GT( a->priority, b->priority );
-	}
-
 	//if LP result worse than best, skip
 	bool isWorseThanBest( const TreeNode& p )const
 	{
@@ -272,13 +279,9 @@ private:
 	std::vector<Equation<SparseRow>> GetConstraintSequence( const TreeNode* p )const
 	{
 		std::vector<Equation<SparseRow>> ret;
-		SparseRow sr;
 		while( p && p != root )
 		{
-			sr.clear();
-			sr[p->split_var_idx] = 1;
-			Equation<SparseRow> new_constraint( sr, p->condition, p->split_value );
-			ret.emplace_back( new_constraint );
+			ret.emplace_back( p->constraint );
 			p = p->parent;
 		}
 		std::reverse( ret.begin(), ret.end() );
@@ -292,36 +295,25 @@ private:
 #endif
 		if constexpr( !isTest )
 		{
-			SparseRow sr;
-			sr[p.split_var_idx] = 1;
-			Equation<SparseRow> new_constraint( sr, p.condition, p.split_value );
-			auto [r, val] = p.sm.SolveWithNewConstraints( p.data, p.result, new_constraint );
+			auto [r, val] = p.sm.SolveWithNewConstraints( p.data, p.result, p.constraint );
 			p.priority = p.ofv = val;
+			lp_iteration += p.sm.GetPhase2Iteration();
 			return r == SimplexMethod::tError::kOptimum;
 		}
 		else//for debug
 		{
 			auto seq = GetConstraintSequence( &p );
-			//p.data = root->data;
-			//p.data.insert( p.data.end(), seq.begin(), seq.end() );
-			//auto [r1, val1] = p.sm.SolveLP( p.data, p.result );//std
+			p.data = root->data;
+			p.data.insert( p.data.end(), seq.begin(), seq.end() );
+			auto [r1, val1] = p.sm.SolveLP( p.data, p.result );//std
 			
 			auto tmp = p;
 			tmp.data = root->data;
 			tmp.sm.SolveLP( tmp.data, tmp.result );
-			//auto [r2, val2] = tmp.sm.SolveWithNewConstraints( tmp.data, tmp.result, seq.begin(), seq.end() );
-			SimplexMethod::tError r2;
-			double val2;
-			for( auto& eq : seq )
-			{
-				tmp.sm.SetSeed( 0 );
-				auto [x, y] = tmp.sm.SolveWithNewConstraints( tmp.data, tmp.result, eq );
-				r2 = x;
-				val2 = y;
-			}
+			auto [r2, val2] = tmp.sm.SolveWithNewConstraints( tmp.data, tmp.result, seq.begin(), seq.end() );
 
-			//if( r1 != r2 || Util::NEQ( val1, val2 ) )
-				//PrintNode( p );
+			if( r1 != r2 || Util::NEQ( val1, val2 ) )
+				PrintNode( p );
 
 			p = tmp;
 			p.priority = p.ofv = val2;
@@ -330,6 +322,9 @@ private:
 	}
 	bool UpdateSolution( const TreeNode& p )
 	{
+		if( isWorseThanBest( p ) )
+			return false;
+
 		//check
 		bool flag = true;
 		for( int i = 0; i < n; i++ )
@@ -347,11 +342,15 @@ private:
 		if( !flag )
 			return false;
 
-		if( best_result.empty() || ( p.data.isMaximization ? Util::LT( best_ofv, p.ofv ) : Util::GT( best_ofv, p.ofv ) ) )
-		{
-			best_result = p.result;
-			best_ofv = p.ofv;
-		}
+		//update
+		best_result = p.result;
+		best_ofv = p.ofv;
+		//add stamp
+		auto& stamp = solution_stamp_list.emplace_back();
+		stamp.ofv = best_ofv;
+		stamp.iteration_stamp = iteration;
+		stamp.time_stamp = time.GetSeconds();
+		stamp.lp_iteration_stamp = lp_iteration;
 		return true;
 	}
 	TreeIter GenerateNewNode( const TreeNode& old, const int varidx, const int splitval, tRelation rel, int other )
@@ -380,6 +379,7 @@ private:
 		assert( p.range[varidx].value().first >= old.range[varidx].value().first );
 		assert( p.range[varidx].value().second <= old.range[varidx].value().second );
 		assert( p.range[varidx].value() != old.range[varidx].value() );
+		p.constraint = p.GetConstraint();
 
 		const bool ok = CalcPriority( p );
 		if( ok )
@@ -387,6 +387,10 @@ private:
 			p.status = SimplexMethod::tError::kOptimum;
 			heap.emplace_back( me );
 			std::push_heap( heap.begin(), heap.end(), TreeNodeCompare );
+		}
+		else//no solution
+		{
+			me->isExpanded = true;
 		}
 		return me;
 	}

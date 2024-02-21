@@ -249,6 +249,12 @@ struct NonStandardFormLinearProgram :public std::list<Equation<T>>
 	T objectivefunc;
 	std::vector<double> lb;//domain lowerbound, use INF if it is R
 
+	void Clear()
+	{
+		this->clear();
+		objectivefunc.clear();
+		lb.clear();
+	}
 	//O(M)~O(MlogN)
 	void Substitute( int idx, double val )
 	{

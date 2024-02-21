@@ -217,6 +217,7 @@
     </ClCompile>
     <ClCompile Include="Mathematics.cpp" />
     <ClCompile Include="SimplexMethod.cpp" />
+    <ClCompile Include="MixedIntegerLinearProgram.cpp" />
     <ClCompile Include="Util.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
