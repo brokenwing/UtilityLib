@@ -127,6 +127,7 @@ public:
 			//initial build
 			root->idx = cnt_node++;
 			root->range = input.int_range;
+			root->data.isMaximization = input.isMaximization;
 			root->data.lb = input.lb;
 			root->data.objectivefunc = input.objectivefunc.toSparseRow();
 			for( auto& e : input )
