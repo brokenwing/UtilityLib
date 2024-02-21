@@ -639,6 +639,79 @@ TEST( SimplexMethod, bug_case_noncleanbasis )
 	EXPECT_TRUE( before.CheckLowerBound( result.begin(), result.end() ) );
 	EXPECT_TRUE( before.CheckEquation( result.begin(), result.end() ) );
 }
+//data from https://www.freecodecamp.org/news/dijkstras-shortest-path-algorithm-visual-introduction/
+//transform reference https://www.cs.toronto.edu/~vassos/teaching/c73/handouts/ShortestPathLPs.pdf
+TEST( MixedIntegerLinearProgram, shortest_path_1 )
+{
+	SimplexMethod sm;
+	sm.SetPerturbation( false );
+	NonStandardFormLinearProgram<SparseRow> input;
+	std::vector<double> result;
+
+	const int n = 7;//p[i] means shortest path from 0 to i, 
+	const int source = 0;
+
+	std::vector<std::vector<int>> dis;
+	dis.resize( n );
+	for( auto& e : dis )
+		e.resize( n, 0 );
+	dis[0][1] = dis[1][0] = 2;
+	dis[0][2] = dis[2][0] = 6;
+	dis[1][3] = dis[3][1] = 5;
+	dis[3][2] = dis[2][3] = 8;
+	dis[3][4] = dis[4][3] = 10;
+	dis[3][5] = dis[5][3] = 15;
+	dis[4][5] = dis[5][4] = 6;
+	dis[5][6] = dis[6][5] = 6;
+	dis[4][6] = dis[6][4] = 2;
+	double total = 0;
+	for( int i = 0; i < n; i++ )
+		for( int j = 0; j < n; j++ )
+			total += dis[i][j];
+
+	std::vector<double> cost_list;
+	cost_list.resize( n, 1 );
+
+	input.lb.resize( n, 0 );
+	input.isMaximization = true;
+	input.objectivefunc = DenseRow( cost_list.begin(),cost_list.end() ).toSparseRow();
+	//set upper bound of length in case of INF
+	for( int i = 0; i < n; i++ )
+	{
+		double maxlength = total;
+		if( i == source )
+			maxlength = 0;
+		SparseRow sr;
+		sr[i] = 1;
+		input.emplace_back( Equation<SparseRow>( sr, tRelation::kLE, maxlength ) );
+	}
+	//add constraint of path
+	for( int i = 0; i < n; i++ )
+		for( int j = 0; j < n; j++ )
+		{
+			if( dis[i][j] == 0 )
+				continue;
+			std::vector<double> tmp;
+			tmp.resize( n, 0 );
+			//i->j means p[i]+dis>=p[j]
+			//thus p[j]-p[i]<=dis
+			tmp[i] = -1;
+			tmp[j] = 1;
+			input.emplace_back( Equation<DenseRow>( DenseRow( tmp.begin(), tmp.end() ), tRelation::kLE, dis[i][j] ).toSparseEquation() );
+		}
+
+	auto [r, ofv] = sm.SolveLP( input, result );
+	
+	ASSERT_EQ( r, SimplexMethod::tError::kOptimum );
+	ASSERT_EQ( result.size(), n );
+	EXPECT_NEAR( result[0], 0, Util::eps );
+	EXPECT_NEAR( result[1], 2, Util::eps );
+	EXPECT_NEAR( result[2], 6, Util::eps );
+	EXPECT_NEAR( result[3], 7, Util::eps );
+	EXPECT_NEAR( result[4], 17, Util::eps );
+	EXPECT_NEAR( result[5], 22, Util::eps );
+	EXPECT_NEAR( result[6], 19, Util::eps );
+}
 
 TEST( SimplexMethod, bug_dead_loop )
 {
