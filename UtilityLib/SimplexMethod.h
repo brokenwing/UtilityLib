@@ -967,10 +967,11 @@ private:
 		return input.CheckEquation( result.begin(), result.end() );
 	};
 
+	//fail in randomtest_denserow_sparserow
 	//https://www.uobabylon.edu.iq/eprints/publication_11_20693_31.pdf
 	template <row_type Row, typename T>
 	requires std::same_as<Equation<Row>, typename std::iterator_traits<T>::value_type>
-	std::tuple<tError, double, double> DoRevisedSimplexMethod( Row& objectivefunc, T st, T ed, std::vector<int>& idxmap, Row* sync = nullptr, bool dual = false )const
+	std::tuple<tError, double, double> DoRevisedSimplexMethod( Row& objectivefunc, T st, T ed, std::vector<int>& idxmap, bool dual = false )const
 	{
 		constexpr int MAX_VECTOR_RESERVED_SIZE = 1000000;//1MB*sizeof(int,double)
 		assert( idxmap.size() == std::distance( st, ed ) );
@@ -1069,8 +1070,6 @@ private:
 		}
 		compressed_of.get_vector().sort();
 		assert( compressed_of.get_vector().check() );
-		//todo sync
-
 		//
 		//start
 		//

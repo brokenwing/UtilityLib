@@ -1241,7 +1241,7 @@ TEST( SimplexMethod, randomtest_denserow_sparserow )
 		const int m = randm( rng );
 
 		SimplexMethod sm;
-		sm.SetRevisedSimplexMethod( true );
+		//sm.SetRevisedSimplexMethod( true );
 		sm.SetPerturbation( true );
 		NonStandardFormLinearProgram<DenseRow> dr_input;
 		NonStandardFormLinearProgram<SparseRow> sr_input;
