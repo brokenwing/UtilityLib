@@ -329,6 +329,7 @@ private:
 	}
 	bool SwapTest( double T1, double T2, double score1, double score2 )const
 	{
+		std::uniform_real_distribution<double> rand01( 0.0, 1.0 );
 		double val = ( 1 / T1 - 1 / T2 ) * ( score1 - score2 );
 		bool isSwap = ( val > 0.01 ) ? true : ( std::exp( val ) > rand01( rng ) * scale );
 		return isSwap;
