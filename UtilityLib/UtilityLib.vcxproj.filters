@@ -126,6 +126,9 @@
     <ClInclude Include="MixedIntegerLinearProgram.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Tarjan.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -141,6 +144,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MixedIntegerLinearProgram.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Tarjan.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
