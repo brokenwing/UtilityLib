@@ -4,6 +4,9 @@
 /UtilityLib/Release/
 /UtilityLib/packages/
 /UtilityLib/x64/
+/UtilityLib/UtilityLib/x64/
+/UtilityLib/UtilityLib/Debug/
+/UtilityLib/UtilityLib/Release/
 
 /UtilTest/.vs/
 /UtilTest/Debug/
