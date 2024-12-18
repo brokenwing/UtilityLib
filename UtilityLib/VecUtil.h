@@ -130,7 +130,7 @@ void VecMod( Iter begin, Iter end, const T& val )
 template <typename Iter_1,typename Iter_2>
 inline void SubVec( Iter_1 vec_begin, Iter_2 idx_begin, Iter_1 result_begin, size_t n)
 {
-	static_assert( std::_Is_random_iter_v<Iter_1> || std::is_array_v<Iter_1> );
+	static_assert( std::random_access_iterator<Iter_1> );
 	for( int i = 0; i < (int)n; i++ )
 	{
 		int idx = *idx_begin++;

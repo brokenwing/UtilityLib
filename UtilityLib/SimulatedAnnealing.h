@@ -418,7 +418,6 @@ bool SimulatedAnnealing<Solution, Engine>::Accept( const double old_score, const
 	if( !m_is_initialized_T )
 		return true;
 	using namespace Util;
-	static const std::uniform_real_distribution<double> rand_real_01 = std::uniform_real_distribution<double>( 0.0, 1.0 );
 
 	double diff = new_score - old_score;
 	assert( !isnan( diff ) );
@@ -430,6 +429,8 @@ bool SimulatedAnnealing<Solution, Engine>::Accept( const double old_score, const
 	assert( GE( temperature, 0 ) );
 	diff *= 1.0 / ( temperature + 1e-8 );
 	assert( !isnan( std::exp( diff ) ) );
+
+	std::uniform_real_distribution<double> rand_real_01 = std::uniform_real_distribution<double>( 0.0, 1.0 );
 	if( LE( rand_real_01( rng ), std::exp( diff ) ) )
 		return true;
 	return false;

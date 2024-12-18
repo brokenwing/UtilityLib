@@ -148,7 +148,7 @@ public:
 
 	bool run()
 	{
-		this->Config( 1, 100, true, 5 );
+		this->Config( 1, 50, true, 10 );
 		this->ConfigLog( 999, log_flag );
 		this->SetTmaxTmin( 100, 0.01 );
 		this->SetTemperatureCalcType( tCoolDownType::kExponential );

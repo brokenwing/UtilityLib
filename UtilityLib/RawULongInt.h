@@ -26,7 +26,7 @@ public:
 	}
 	RawULongInt( unsigned int val )
 	{
-		assert( (ULL)abs( val ) < (ULL)RADIX * RADIX );
+		assert( (ULL)val < (ULL)RADIX * RADIX );
 		if( val < RADIX )
 		{
 			m_val.resize( 1, val );
