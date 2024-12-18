@@ -164,7 +164,7 @@ public:
 	void resize( size_t size )
 	{
 		m_id2parent.resize( size );
-		for( int i = 0; i < size; i++ )
+		for( int i = 0; i < (int)size; i++ )
 			m_id2parent[i] = i;
 	}
 };

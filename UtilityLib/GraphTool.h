@@ -58,7 +58,7 @@ std::vector<int> topological_sort( const Graph& g, const GraphNodeIdx2List<Graph
 			q.emplace_back( node_idx2idx.GetNodeIdx( i ) );
 
 	int h = 0;
-	while( h < q.size() )
+	while( h < (int)q.size() )
 	{
 		auto st = g.GetNode( q[h] );
 		for( auto e = g.GetNextEdge( *st ); e; e = g.GetNextEdge( *e ) )

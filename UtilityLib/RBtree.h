@@ -86,14 +86,14 @@ public:
 	//1-n
 	iterator find_rank( int rank )
 	{
-		if( rank<1 || rank>data.size() || root == end() )
+		if( rank<1 || rank>(int)data.size() || root == end() )
 			return end();
 		return find_rank( root, rank );
 	}
 	//1-n
 	const_iterator find_rank( int rank )const
 	{
-		if( rank<1 || rank>data.size() || root == end() )
+		if( rank<1 || rank>( int )data.size() || root == end() )
 			return end();
 		return find_rank( root, rank );
 	}

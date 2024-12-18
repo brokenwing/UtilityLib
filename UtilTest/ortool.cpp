@@ -340,7 +340,7 @@ TEST( SA_TSP_sample, minimize_test )
 	sa.Execute( 0 );
 	
 	auto q = sa.GetLogList();
-	EXPECT_GT( q.size(), 5 );
+	EXPECT_GT( (int)q.size(), 5 );
 	double prev = q.front().best_score;
 	for( auto& e : q )
 	{
@@ -358,7 +358,7 @@ TEST( SA_TSP_sample, sa_basic )
 	ASSERT_TRUE( sa.Execute( 0 ) );
 
 	auto q = sa.GetLogList();
-	EXPECT_GT( q.size(), 5 );
+	EXPECT_GT( (int)q.size(), 5 );
 	std::cout << "OFV= ";
 	for( auto& e : q )
 		std::cout << e.best_score << ' ';
@@ -379,7 +379,7 @@ TEST( SA_TSP_sample, sa_basic_resample )
 	ASSERT_TRUE( sa.Execute( 0 ) );
 
 	auto q = sa.GetLogList();
-	EXPECT_GT( q.size(), 5 );
+	EXPECT_GT( (int)q.size(), 5 );
 	std::cout << "OFV= ";
 	for( auto& e : q )
 		std::cout << e.best_score << ' ';
@@ -398,7 +398,7 @@ TEST( SA_TSP_sample, sa2hc )
 	ASSERT_TRUE( hc.Execute( 0 ) );
 
 	auto q = hc.GetLogList();
-	EXPECT_GT( q.size(), 5 );
+	EXPECT_GT( (int)q.size(), 5 );
 	std::cout << "OFV= ";
 	for( auto& e : q )
 		std::cout << e.score << ' ';

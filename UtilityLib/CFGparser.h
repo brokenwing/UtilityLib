@@ -124,9 +124,9 @@ public:
 			e.idx = i++;
 		//calc range
 		std::map<int, std::pair<int, int>> dom2range;
-		for( int i = 0; i < dom2relation.size(); i++ )
+		for( int i = 0; i < (int)dom2relation.size(); i++ )
 			dom2range[i] = { terminal_offset,0 };
-		for( int i = 0; i < relation.size(); i++ )
+		for( int i = 0; i < (int)relation.size(); i++ )
 		{
 			auto& e = dom2range[relation[i].dom];
 			e.first = std::min( e.first, i );
@@ -312,10 +312,10 @@ struct ExprPriorityConfig
 template <grammar_type G>
 [[nodiscard]]int AddExprWithPriority( G& g, const std::vector<ExprPriorityConfig>& def, const int last_expr, const int compute_unit, bool parentheses = true )
 {
-	for( int i = 0; i < def.size(); i++ )
+	for( int i = 0; i < (int)def.size(); i++ )
 	{
 		int next_level = last_expr;
-		if( i + 1 < def.size() )
+		if( i + 1 < (int)def.size() )
 			next_level = def[i + 1].expr_id;
 		const int x = def[i].expr_id;
 		const int y = def[i].operator_id;
@@ -442,10 +442,10 @@ public:
 			tryAddState( dp.front(), x );
 		}
 		//dp
-		for( int i = 0; i <= text.size(); ++i )
+		for( int i = 0; i <= (int)text.size(); ++i )
 		{
 			auto& cur_dp = dp[i];
-			for( int j = 0; j < cur_dp.q.size(); ++j )
+			for( int j = 0; j < (int)cur_dp.q.size(); ++j )
 			{
 				auto cur = cur_dp.q[j];
 				if( isComplete( cur ) )
@@ -470,7 +470,7 @@ public:
 					const int id = GetNextSymbol( cur );
 					if( grammar.isTerminal( id ) )
 					{
-						if( i < text.size() && id - grammar.GetTerminalOffset() == text[i] )
+						if( i < (int)text.size() && id - grammar.GetTerminalOffset() == text[i] )
 						{
 							auto tmp = cur;
 							++tmp.offset;
@@ -524,7 +524,7 @@ public:
 	//from left to right in dest
 	std::vector<int> GetChildList( int idx )const
 	{
-		if( idx < 0 || idx >= expressionDAG.size() ) [[unlikely]]
+		if( idx < 0 || idx >= (int)expressionDAG.size() ) [[unlikely]]
 			return {};
 		std::vector<int> ret;
 		ret.reserve( 8 );
@@ -591,7 +591,7 @@ public:
 				--ng_pos;
 			ret.pos = ng_pos + 1;
 
-			if( ng_pos < text.size() && ng_pos >= 0 )
+			if( ng_pos < (int)text.size() && ng_pos >= 0 )
 			{
 				int ch[1] = { text[ng_pos] };
 				ret.ch = grammar.toString( ch );
@@ -817,7 +817,7 @@ std::vector<int> toPostorderSequence( const Parser& cfg, const std::set<int>& ta
 		case FunctionExpandMark:
 		{
 			assert( q.size() >= 1 );
-			for( int i = 1; i < q.size(); ++i )
+			for( int i = 1; i < (int)q.size(); ++i )
 				postorderExpand( q[i] );
 			postorderExpand( q[0] );//function name
 			break;
