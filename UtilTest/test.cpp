@@ -576,3 +576,28 @@ TEST( Util, AllPermutation_5 )
 	} );
 	EXPECT_EQ( tot, 120 );
 }
+TEST( Util, GetLogicalCoreCount )
+{
+	EXPECT_GT( GetLogicalCoreCount(), 0 );
+}
+TEST( Util, GetPhysicalCoreCount )
+{
+	EXPECT_GT( GetPhysicalCoreCount(), 0 );
+}
+TEST( Util, GetPEcoreCount )
+{
+	auto [p, e] = GetPEcoreCount();
+	EXPECT_GT( p, 0 );
+	EXPECT_GE( e, 0 );
+}
+TEST( Util, GetPEcoreMask )
+{
+	auto [p, e] = GetPEcoreMask();
+	EXPECT_GT( p, 0 );
+	EXPECT_GE( e, 0 );
+}
+TEST( Util, SetThreadAffinity )
+{
+	auto [p, e] = GetPEcoreMask();
+	EXPECT_NO_THROW( SetThreadAffinity( p ) );
+}

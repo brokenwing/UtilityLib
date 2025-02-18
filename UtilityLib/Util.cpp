@@ -94,4 +94,111 @@ void CloseConsole()
 {
 	FreeConsole();
 }
+
+int GetLogicalCoreCount()noexcept
+{
+	try
+	{
+		SYSTEM_INFO sysinfo;
+		GetSystemInfo( &sysinfo );
+		return sysinfo.dwNumberOfProcessors;
+	} catch( ... )
+	{
+		return 0;
+	}
+	return 0;
+}
+
+int GetPhysicalCoreCount()noexcept
+{
+	int nProcessors = 0;
+	try
+	{
+		DWORD len = 0;
+		GetLogicalProcessorInformation( nullptr, &len );
+		std::vector<SYSTEM_LOGICAL_PROCESSOR_INFORMATION> buffer;
+		buffer.resize( len / sizeof( SYSTEM_LOGICAL_PROCESSOR_INFORMATION ) );
+
+		if( GetLogicalProcessorInformation( buffer.data(), &len ) )
+		{
+			for( const auto& info : buffer )
+			{
+				if( info.Relationship == _LOGICAL_PROCESSOR_RELATIONSHIP::RelationProcessorCore )
+				{
+					++nProcessors;
+				}
+			}
+		}
+	} catch( ... )
+	{
+		return 0;
+	}
+	return nProcessors;
+}
+
+std::pair<int, int> GetPEcoreCount()noexcept
+{
+	int nPerformanceCores = 0;
+	int nEfficiencyCores = 0;
+	try
+	{
+		DWORD len = 0;
+		GetLogicalProcessorInformation( nullptr, &len );
+		std::vector<SYSTEM_LOGICAL_PROCESSOR_INFORMATION> buffer( len / sizeof( SYSTEM_LOGICAL_PROCESSOR_INFORMATION ) );
+
+		if( GetLogicalProcessorInformation( buffer.data(), &len ) )
+		{
+			for( const auto& info : buffer )
+			{
+				if( info.Relationship == RelationProcessorCore )
+				{
+					if( info.ProcessorCore.Flags & 0x1 )
+						++nPerformanceCores;
+					else
+						++nEfficiencyCores;
+				}
+			}
+		}
+	} catch( ... )
+	{
+		return { 0,0 };
+	}
+	return { nPerformanceCores,nEfficiencyCores };
+}
+
+std::pair<unsigned long long, unsigned long long> GetPEcoreMask()noexcept
+{
+	ULONG_PTR performanceCoresMask = 0;
+	ULONG_PTR efficiencyCoresMask = 0;
+	try
+	{
+		DWORD len = 0;
+		GetLogicalProcessorInformation( nullptr, &len );
+		std::vector<SYSTEM_LOGICAL_PROCESSOR_INFORMATION> buffer( len / sizeof( SYSTEM_LOGICAL_PROCESSOR_INFORMATION ) );
+
+		if( GetLogicalProcessorInformation( buffer.data(), &len ) )
+		{
+			for( const auto& info : buffer )
+			{
+				if( info.Relationship == RelationProcessorCore )
+				{
+					if( info.ProcessorCore.Flags & 0x1 )
+						performanceCoresMask |= info.ProcessorMask;
+					else
+						efficiencyCoresMask |= info.ProcessorMask;
+				}
+			}
+		}
+	} catch( ... )
+	{
+		return { 0,0 };
+	}
+	return { performanceCoresMask,efficiencyCoresMask };
+}
+
+void SetThreadAffinity( unsigned long long mask )noexcept
+{
+	SetThreadAffinityMask( GetCurrentThread(), mask );
+}
+
 }

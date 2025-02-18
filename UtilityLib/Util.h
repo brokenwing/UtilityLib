@@ -60,6 +60,13 @@ inline void Println( T&& head, Args&&... args );
 template <typename Iter>
 void PrintVec( Iter begin, Iter end, char delimiter = ' ', char last = '\n' );
 
+//System
+extern int GetLogicalCoreCount()noexcept;
+extern int GetPhysicalCoreCount()noexcept;
+extern std::pair<int, int> GetPEcoreCount()noexcept;//<Pcore,Ecore>
+extern std::pair<unsigned long long, unsigned long long> GetPEcoreMask()noexcept;//<Pcore,Ecore>
+extern inline void SetThreadAffinity( unsigned long long mask )noexcept;
+
 //<a,b> != <b,a>; <a,a> != <b,b>; if a!=b
 template <typename T1, typename T2>
 inline size_t OrderedHash( const T1& a, const T2& b )
