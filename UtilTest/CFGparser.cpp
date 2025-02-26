@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "../UtilityLib/CFGparser.h"
 #include <vector>
 #include <map>
@@ -60,6 +60,64 @@ TEST( Grammar, user_type )
 
 	auto r = g.Initialize();
 	EXPECT_EQ( r, Grammar<int>::tError::kSuc );
+}
+
+TEST( Grammar, wchar_ok )
+{
+	using namespace CFG;
+	using G = Grammar<std::tuple<>, wchar_t>;
+	G g;
+
+	g.AddASCIIAsTerminal();
+	int any = 1;
+	g.AddNonTerminal( any, { g.toTerminal( 'x' ) } );
+	g.AddNonTerminal( any, { g.toTerminal( 'y' ) } );
+	g.AddNonTerminal( StartNonTerminal, { any } );
+	auto r = g.Initialize();
+	EXPECT_EQ( r, G::tError::kSuc );
+}
+TEST( Grammar, wchar_missing_terminal )
+{
+	using namespace CFG;
+	using G = Grammar<std::tuple<>, wchar_t>;
+	G g;
+	g.AddASCIIAsTerminal();
+	int any = 1;
+	g.AddNonTerminal( StartNonTerminal, { any } );
+	auto r = g.Initialize();
+	EXPECT_EQ( r, G::tError::kNoTerminal );
+}
+TEST( Grammar, wchar_undefinded_nonTerminal )
+{
+	using namespace CFG;
+	using G = Grammar<std::tuple<>, wchar_t>;
+	G g;
+	g.AddASCIIAsTerminal();
+	int any = 1;
+	int undef = 2;
+	g.AddNonTerminal( any, { g.toTerminal( 'x' ) } );
+	g.AddNonTerminal( any, { g.toTerminal( 'y' ) } );
+	g.AddNonTerminal( StartNonTerminal, { any,undef } );
+	auto r = g.Initialize();
+	EXPECT_EQ( r, G::tError::kUndefindedNonTerminal );
+}
+TEST( Grammar, wchar_user_type )
+{
+	using namespace CFG;
+	using G = Grammar<int, wchar_t>;
+
+	G g;
+	g.AddASCIIAsTerminal();
+	int any = 1;
+	int sth = 2;
+	g.AddTerminalList( sth, { 'x','y' }, { .user_data = 1 } );
+	g.AddTerminalWord( any, { 'x','y' }, { .user_data = 2 } );
+	g.AddNonTerminal( any, { g.toTerminal( 'y' ) }, { .user_data = 3 } );
+	g.AddNonTerminal( StartNonTerminal, { any } );
+	g.AddNonTerminal( StartNonTerminal, { sth } );
+
+	auto r = g.Initialize();
+	EXPECT_EQ( r, G::tError::kSuc );
 }
 
 TEST( CFGparser, parse_expr )
@@ -370,12 +428,79 @@ std::pair<bool, std::string> ParseAndPrintPostorderExpr( const std::string& s, C
 	//std::cout << cfg.toExprTreeString( cfg.GetRoot() ) << '\n';
 	return { x,CFGtool::toPostorderExprString( cfg, print_target ) };
 }
+std::pair<bool, std::wstring> ParseAndPrintPostorderExpr_wchar( const std::wstring& s, CFG::WCFGparser<>::ErrorInfo* err = nullptr )
+{
+	using namespace CFG;
+	WGrammar<> g;
+	g.AddASCIIAsTerminal();
+	
+	int digit = 1;
+	int num = 2;
+	int expr = 3;
+	int ope_level_1 = 4;
+	int ope_level_2 = 5;
+	int ope_level_3 = 9;
+	int ope_level_4 = 10;
+	int expr_1 = 6;
+	int expr_2 = 7;
+	int expr_3 = 8;
+	int expr_4 = 11;
+
+	g.SetNonTerminalString( num, "Num" );
+	g.SetNonTerminalString( digit, "Digit" );
+	g.SetNonTerminalString( ope_level_1, "|+,-|" );
+	g.SetNonTerminalString( ope_level_2, "|*,/|" );
+	g.SetNonTerminalString( ope_level_3, "|^|" );
+	g.SetNonTerminalString( ope_level_4, "|-|" );
+	g.SetNonTerminalString( expr, "Expr" );
+	g.SetNonTerminalString( expr_1, "expr_1" );
+	g.SetNonTerminalString( expr_2, "expr_2" );
+	g.SetNonTerminalString( expr_3, "expr_3" );
+	g.SetNonTerminalString( expr_4, "expr_4" );
+	
+	g.AddTerminalList( ope_level_1, { '+','-' } );
+	g.AddTerminalList( ope_level_2, { '*','/' } );
+	g.AddTerminalList( ope_level_3, { '^' } );
+	g.AddTerminalList( ope_level_4, { '-' } );
+
+	GrammarTemplate::AddIntegerDef( g, num, digit );
+	
+	std::vector<GrammarTemplate::ExprPriorityConfig> prioDef;
+	prioDef.push_back( { .expr_id = expr_1,.operator_id = ope_level_1,.mark = CFGtool::BinaryOperatorExpandMark } );
+	prioDef.push_back( { .expr_id = expr_2,.operator_id = ope_level_2,.mark = CFGtool::BinaryOperatorExpandMark } );
+	prioDef.push_back( { .expr_id = expr_3,.operator_id = ope_level_3,.mark = CFGtool::BinaryOperatorExpandMark } );
+	prioDef.push_back( { .expr_id = expr_4,.operator_id = ope_level_4,.mark = CFGtool::UnaryOperatorExpandMark,.unary = true } );
+	const int main_expr = GrammarTemplate::AddExprWithPriority( g, prioDef, expr, num );
+
+	g.AddNonTerminal( StartNonTerminal, { main_expr } );
+	auto r = g.Initialize();
+	if( r != WGrammar<>::tError::kSuc )
+		return { false,L"" };
+	
+	WCFGparser<> cfg;
+	cfg.SetGrammar( g );
+	
+	std::set<int> print_target = { num,ope_level_1,ope_level_2,ope_level_3,ope_level_4 };
+	
+	bool x = cfg.Parse( string2vector( s ) );
+	if( err )
+		*err = cfg.ParseErrorReport();
+	if( !x )
+		return { false,L"" };
+	//std::cout << cfg.toExprTreeString( cfg.GetRoot() ) << '\n';
+	return { x,CFGtool::toPostorderExprString( cfg, print_target ) };
+}
 }
 
 TEST( CFGparser_operator_priority, basic )
 {
 	EXPECT_EQ( ParseAndPrintPostorderExpr( "1+2" ).second, "1,2,+," );
 	EXPECT_EQ( ParseAndPrintPostorderExpr( "1*2" ).second, "1,2,*," );
+}
+TEST( CFGparser_operator_priority, basic_wchar )
+{
+	EXPECT_EQ( ParseAndPrintPostorderExpr_wchar( L"1+2" ).second, L"1,2,+," );
+	EXPECT_EQ( ParseAndPrintPostorderExpr_wchar( L"1*2" ).second, L"1,2,*," );
 }
 TEST( CFGparser_operator_priority, long_number )
 {
@@ -555,6 +680,90 @@ std::string ParseAndPrintPostorderOFVexpr( const std::string& s, CFG::CFGparser<
 		*err = cfg.ParseErrorReport();
 	return CFGtool::toPostorderExprString( cfg, target );
 }
+std::wstring ParseAndPrintPostorderOFVexpr_wchar( const std::wstring& s, CFG::WCFGparser<>::ErrorInfo* err = nullptr )
+{
+	using namespace CFG;
+
+	enum struct tNT
+	{
+		kStart = StartNonTerminal,
+		kID, kChar,
+		kScientificNotation, kReal, kInt, kDigit,
+		kSpace, kMultiSpace,
+		kUnit, kExpr, kFunc, kParam,
+		kSubExpr1, kSubExpr2, kSubExpr3, kSubExpr4,
+		kOpGroup1, kOpGroup2, kOpGroup3, kOpGroup4,
+		kOther,
+	};
+	WGrammar<> g;
+	g.AddASCIIAsTerminal();
+
+	g.SetNonTerminalString( (int)tNT::kID, "ID" );
+	g.SetNonTerminalString( (int)tNT::kInt, "Int" );
+	g.SetNonTerminalString( (int)tNT::kReal, "Real" );
+	g.SetNonTerminalString( (int)tNT::kDigit, "Digit" );
+	g.SetNonTerminalString( (int)tNT::kChar, "Char" );//for id
+	g.SetNonTerminalString( (int)tNT::kSpace, "Space" );
+	g.SetNonTerminalString( (int)tNT::kMultiSpace, "MultiSpace" );
+	g.SetNonTerminalString( (int)tNT::kUnit, "Unit" );
+	g.SetNonTerminalString( (int)tNT::kExpr, "Expr" );
+	g.SetNonTerminalString( (int)tNT::kFunc, "Func" );
+	g.SetNonTerminalString( (int)tNT::kParam, "Param" );
+	g.SetNonTerminalString( (int)tNT::kSubExpr1, "SubExpr1" );
+	g.SetNonTerminalString( (int)tNT::kSubExpr2, "SubExpr2" );
+	g.SetNonTerminalString( (int)tNT::kSubExpr3, "SubExpr3" );
+	g.SetNonTerminalString( (int)tNT::kSubExpr4, "SubExpr4" );
+	g.SetNonTerminalString( (int)tNT::kOpGroup1, "Op|+,-|" );
+	g.SetNonTerminalString( (int)tNT::kOpGroup2, "Op|*,/|" );
+	g.SetNonTerminalString( (int)tNT::kOpGroup3, "Op|^|" );
+	g.SetNonTerminalString( (int)tNT::kOpGroup4, "Op|-|" );
+
+	g.AddTerminalList( (int)tNT::kOpGroup1, { '+','-' } );
+	g.AddTerminalList( (int)tNT::kOpGroup2, { '*','/' } );
+	g.AddTerminalList( (int)tNT::kOpGroup3, { '^' } );
+	g.AddTerminalList( (int)tNT::kOpGroup4, { '-' } );
+
+	GrammarTemplate::AddIntegerDef( g, (int)tNT::kInt, (int)tNT::kDigit );
+	GrammarTemplate::AddRealNumberDef( g, (int)tNT::kReal, (int)tNT::kInt, g.toTerminal( '.' ) );
+	GrammarTemplate::AddScientificNotationDef( g, (int)tNT::kScientificNotation, (int)tNT::kReal, g.toTerminal( '-' ) );
+	GrammarTemplate::AddIDdef( g, (int)tNT::kID, (int)tNT::kChar, (int)tNT::kInt );
+
+	g.AddTerminalList( (int)tNT::kSpace, { ' ','\t' } );
+	g.AddNonTerminal( (int)tNT::kMultiSpace, { (int)tNT::kSpace,(int)tNT::kMultiSpace } );
+	g.AddNonTerminal( (int)tNT::kMultiSpace, { (int)tNT::kSpace } );
+
+	g.AddNonTerminal( (int)tNT::kUnit, { (int)tNT::kReal } );
+	g.AddNonTerminal( (int)tNT::kUnit, { (int)tNT::kScientificNotation } );
+	g.AddNonTerminal( (int)tNT::kUnit, { (int)tNT::kFunc }, { .mark = CFGtool::ForceExpandMark } );
+	g.AddNonTerminal( (int)tNT::kUnit, { g.toTerminal( '[' ), (int)tNT::kInt,g.toTerminal( ']' ) } );//[idx]  user prop
+	g.AddNonTerminal( (int)tNT::kUnit, { g.toTerminal( '[' ), (int)tNT::kID,g.toTerminal( ']' ) } );//[keyword]
+
+	g.AddNonTerminal( (int)tNT::kFunc, { (int)tNT::kID,g.toTerminal( '(' ),(int)tNT::kParam,g.toTerminal( ')' ) }, { .mark = CFGtool::FunctionExpandMark } );
+
+	std::vector<GrammarTemplate::ExprPriorityConfig> prioDef;
+	prioDef.push_back( { .expr_id = (int)tNT::kSubExpr1,.operator_id = (int)tNT::kOpGroup1,.mark = CFGtool::BinaryOperatorExpandMark } );
+	prioDef.push_back( { .expr_id = (int)tNT::kSubExpr2,.operator_id = (int)tNT::kOpGroup2,.mark = CFGtool::BinaryOperatorExpandMark } );
+	prioDef.push_back( { .expr_id = (int)tNT::kSubExpr3,.operator_id = (int)tNT::kOpGroup3,.mark = CFGtool::BinaryOperatorExpandMark } );
+	prioDef.push_back( { .expr_id = (int)tNT::kSubExpr4,.operator_id = (int)tNT::kOpGroup4,.mark = CFGtool::UnaryOperatorExpandMark,.unary = true } );
+	const int main_expr = GrammarTemplate::AddExprWithPriority( g, prioDef, (int)tNT::kExpr, (int)tNT::kUnit );
+	
+	g.AddNonTerminal( (int)tNT::kParam, { main_expr } );
+	g.AddNonTerminal( (int)tNT::kParam, { main_expr,g.toTerminal( ',' ),(int)tNT::kParam } );
+
+	g.AddNonTerminal( StartNonTerminal, { main_expr } );
+
+	auto r = g.Initialize();
+	if( r != WGrammar<>::tError::kSuc )
+		return L"";
+	WCFGparser<> cfg;
+	cfg.SetGrammar( g );
+
+	std::set<int> target = { (int)tNT::kUnit,(int)tNT::kID,(int)tNT::kOpGroup1,(int)tNT::kOpGroup2,(int)tNT::kOpGroup3,(int)tNT::kOpGroup4 };
+	cfg.Parse( string2vector( s ) );
+	if( err )
+		*err = cfg.ParseErrorReport();
+	return CFGtool::toPostorderExprString( cfg, target );
+}
 }
 
 TEST( CFGsample, unit )
@@ -565,12 +774,27 @@ TEST( CFGsample, unit )
 	EXPECT_EQ( ParseAndPrintPostorderOFVexpr( "1e2" ), "1e2," );
 	EXPECT_EQ( ParseAndPrintPostorderOFVexpr( "1.5" ), "1.5," );
 }
+TEST( CFGsample, unit_wchar )
+{
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr_wchar( L"[0]" ), L"[0]," );
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr_wchar( L"[est]" ), L"[est]," );
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr_wchar( L"1" ), L"1," );
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr_wchar( L"1e2" ), L"1e2," );
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr_wchar( L"1.5" ), L"1.5," );
+}
 TEST( CFGsample, NGunit )
 {
 	EXPECT_EQ( ParseAndPrintPostorderOFVexpr( "[123x]" ), "" );
 	EXPECT_EQ( ParseAndPrintPostorderOFVexpr( "-" ), "" );
 	EXPECT_EQ( ParseAndPrintPostorderOFVexpr( "()" ), "" );
 	EXPECT_EQ( ParseAndPrintPostorderOFVexpr( "abc" ), "" );
+}
+TEST( CFGsample, NGunit_wchar )
+{
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr_wchar( L"[123x]" ), L"" );
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr_wchar( L"啊" ), L"" );
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr_wchar( L"()" ), L"" );
+	EXPECT_EQ( ParseAndPrintPostorderOFVexpr_wchar( L"あ" ), L"" );
 }
 TEST( CFGsample, func )
 {
@@ -609,6 +833,17 @@ TEST( CFGerrorReport, number_expr_unexpected_char )
 	EXPECT_EQ( err.text, "1+2x" );
 	EXPECT_EQ( err.type, CFG::CFGparser<>::tError::kMidState );
 	EXPECT_EQ( err.expect_rawstr, "*+-/0123456789^" );
+}
+TEST( CFGerrorReport, number_expr_unexpected_char_wchar )
+{
+	CFG::WCFGparser<>::ErrorInfo err;
+	auto [a, b] = ParseAndPrintPostorderExpr_wchar( L"1+2x", &err );
+	ASSERT_FALSE( a );
+	EXPECT_EQ( err.ch, L"x" );
+	EXPECT_EQ( err.pos, 4 );
+	EXPECT_EQ( err.text, L"1+2x" );
+	EXPECT_EQ( err.type, CFG::WCFGparser<>::tError::kMidState );
+	EXPECT_EQ( err.expect_rawstr, L"*+-/0123456789^" );
 }
 TEST( CFGerrorReport, number_expr_parentheses_left )
 {

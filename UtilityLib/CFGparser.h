@@ -19,11 +19,14 @@ static constexpr int StartNonTerminal = 0;
 static constexpr int Seperator = -1;
 
 static_assert( std::is_empty_v<std::tuple<>> );
-template <class UserType = std::tuple<>>
+template <class user_type = std::tuple<>, typename string_elem_type = char>
 class Grammar
 {
 public:
-	using UserStruct = UserType;
+	using UserStruct = user_type;
+	using StringElemType = string_elem_type;
+	using StringType = std::basic_string<string_elem_type>;
+
 	struct InternalStruct
 	{
 		int idx = -1;
@@ -32,7 +35,7 @@ public:
 	};
 	struct ExternalStruct
 	{
-		std::string desc = "";//debug
+		StringType desc;//debug
 		bool isPrint = true;
 		int mark = 0;//user mark (for convenience)
 		UserStruct user_data = UserStruct();
@@ -55,8 +58,8 @@ private:
 	std::vector<int> seq;//data (ex. A->BCD)
 	std::vector<Rule> relation;
 	std::vector<std::span<const Rule>> dom2relation;
-	std::map<int, std::string> terminal2str;//for visualization
-	std::map<int, std::string> nonterminal2str;//for generating desc
+	std::map<int, StringType> terminal2str;//for visualization
+	std::map<int, StringType> nonterminal2str;//for generating desc
 	
 public:
 	Grammar()
@@ -66,6 +69,14 @@ public:
 	Grammar( const Grammar& ) = delete;
 	Grammar& operator=( const Grammar& ) = delete;
 
+	static constexpr StringType T( const std::string&& s )
+	{
+		if constexpr( std::same_as<char, StringElemType> )
+			return s;
+		if constexpr( std::same_as<wchar_t, StringElemType> )
+			return StringType( s.begin(), s.end() );
+	}
+
 	const Rule& GetRule( const int idx )const												{		return relation[idx];	}
 	typename decltype( dom2relation )::value_type GetRuleListByDom( const int dom )const	{		return dom2relation[dom];	}
 	int GetTerminalOffset()const noexcept													{		return terminal_offset;	}
@@ -74,12 +85,14 @@ public:
 		assert( val > 0 );
 		terminal_offset = val;
 	}
-	void SetNonTerminalString( int id, const std::string& str )	{		nonterminal2str[id] = str;	}
-	void SetTerminalString( int id, const std::string& str )	{		terminal2str[id] = str;	}
+	void SetNonTerminalString( int id, const StringType& str )	{		nonterminal2str[id] = str;	}
+	void SetNonTerminalString( int id, const char* s )			{		nonterminal2str[id] = T( s );	}
+	void SetTerminalString( int id, const StringType& str )	{		terminal2str[id] = str;	}
+	void SetTerminalString( int id, const char* s )	{		terminal2str[id] = T( s );	}
 	//use SetTerminalString to set str
-	std::string toString( std::span<const int> text, const char* missing = "?" )const
+	StringType toString( std::span<const int> text, const StringType& missing = T( "?" ) )const
 	{
-		std::string s;
+		StringType s;
 		s.reserve( text.size() );
 		for( int id : text )
 		{
@@ -194,18 +207,18 @@ public:
 	void AddASCIIAsTerminal()
 	{
 		for( int i = 1; i < 128; i++ )
-			SetTerminalString( i, std::string( 1, char( i ) ) );
+			SetTerminalString( i, StringType( 1, StringElemType( i ) ) );
 	}
 
 private:
 	void GenerateDescription()
 	{
-		nonterminal2str[StartNonTerminal] = "S";
+		nonterminal2str[StartNonTerminal] = T( "S" );
 		for( auto& rule : relation )
-			if( rule.desc == "" )
+			if( rule.desc.empty() )
 			{
 				rule.desc.reserve( ( rule.dest.size() + 1 ) * 6 + 2 );//assume average sizeof word is 6
-				rule.desc = nonterminal2str[rule.dom] + " =";
+				rule.desc = nonterminal2str[rule.dom] + T( " =" );
 				for( int id : rule.dest )
 				{
 					rule.desc += ' ';
@@ -235,8 +248,12 @@ private:
 		return nt_used != nt_def;
 	}
 };
+
+template <typename T = std::tuple<>>
+using WGrammar = Grammar<T, wchar_t>;
+
 template <typename T>
-concept grammar_type = std::is_base_of_v<Grammar<typename T::UserStruct>, T>;
+concept grammar_type = std::is_base_of_v<Grammar<typename T::UserStruct, char>, T> || std::is_base_of_v<Grammar<typename T::UserStruct, wchar_t>, T>;
 
 namespace GrammarTemplate
 {
@@ -272,10 +289,10 @@ void AddIDdef( G& g, const int id, const int char_id, const int num_id, bool is_
 	if( !is_char_defined )
 	{
 		for( char c = 'a'; c <= 'z'; ++c )
-			g.AddTerminalList( char_id, { c }, { "char" } );
+			g.AddTerminalList( char_id, { c }, { g.T( "char" ) } );
 		for( char c = 'A'; c <= 'Z'; ++c )
-			g.AddTerminalList( char_id, { c }, { "char" } );
-		g.AddTerminalList( char_id, { '_' }, { "char" } );
+			g.AddTerminalList( char_id, { c }, { g.T( "char" ) } );
+		g.AddTerminalList( char_id, { '_' }, { g.T( "char" ) } );
 	}
 	g.AddNonTerminal( id, { char_id } );
 	g.AddNonTerminal( id, { char_id,id } );
@@ -337,6 +354,10 @@ class CFGparser
 {
 public:
 	using Grammar = T_Grammar;
+	using StringElemType = typename Grammar::StringElemType;
+	using StringType = typename Grammar::StringType;
+	using StringStreamType = std::basic_stringstream<StringElemType>;
+
 	struct State
 	{
 		int rule_idx = -1;
@@ -537,13 +558,13 @@ public:
 		std::reverse( ret.begin(), ret.end() );
 		return ret;
 	}
-	std::string toExprTreeString( const int root )const
+	StringType toExprTreeString( const int root )const
 	{
-		std::ostringstream ss;
+		StringStreamType ss;
 		toExprTreeString( ss, root );
 		return ss.str();
 	}
-	void toExprTreeString( std::ostringstream& ss, const int root, const int deep = 1 )const
+	void toExprTreeString( StringStreamType& ss, const int root, const int deep = 1 )const
 	{
 		auto& me = expressionDAG[root];
 		ss << me.idx << '(' << me.parent << ')' << ": " << grammar.GetRule( me.rule_idx ).desc << " -> " << grammar.toString( GetText( me ) ) << '\n';
@@ -552,7 +573,7 @@ public:
 			const int child = expressionDAG[p].GetChildIdx();
 			if( child != -1 && grammar.GetRule( expressionDAG[child].rule_idx ).isPrint )
 			{
-				ss << std::string( deep * 2, ' ' );
+				ss << StringType( deep * 2, ' ' );
 				toExprTreeString( ss, child, deep + 1 );
 			}
 		}
@@ -570,11 +591,12 @@ public:
 	{
 		tError type = tError::kUnknown;
 		int pos = -1;//start from 1
-		std::string ch;
-		std::string text;
-		std::string expect_rawstr;
-		std::string usr_msg;
-		std::vector<std::string> debug_msg;//each state of dp[pos]
+		StringType ch;
+		StringType text;
+		StringType expect_rawstr;
+		StringType usr_msg_without_col;
+		StringType usr_msg;
+		std::vector<StringType> debug_msg;//each state of dp[pos]
 	};
 	ErrorInfo ParseErrorReport()const
 	{
@@ -597,7 +619,7 @@ public:
 				ret.ch = grammar.toString( ch );
 			}
 			else
-				ret.ch = "End";
+				ret.ch = grammar.T( "End" );
 			ret.text = grammar.toString( GetText() );
 			ret.type = ( ng_pos == text.size() ) ? tError::kFinalState : tError::kMidState;
 
@@ -606,21 +628,21 @@ public:
 			for( auto it = dp[ng_pos].q.rbegin(); it != dp[ng_pos].q.rend(); ++it )
 			{
 				int state = -1;//1-complete, 2-read char, 3-predict
-				std::string state_str;
+				StringType state_str;
 				if( isComplete( *it ) )
 				{
 					state = 1;
-					state_str = "complete";
+					state_str = grammar.T( "complete" );
 				}
 				else if( grammar.isTerminal( GetNextSymbol( *it ) ) )
 				{
 					state = 2;
-					state_str = "expect";
+					state_str = grammar.T( "expect" );
 				}
 				else
 				{
 					state = 3;
-					state_str = "predict";
+					state_str = grammar.T( "predict" );
 				}
 
 				if( state == 2 )
@@ -629,17 +651,20 @@ public:
 				std::span<const int> match_text( GetText().begin() + it->pos, GetText().begin() + ng_pos );
 				auto match_str = grammar.toString( match_text );
 				if( match_str.empty() )
-					match_str = "nothing";
+					match_str = grammar.T( "nothing" );
 				else
-					match_str = "'" + match_str + "'";
+					match_str = grammar.T( "'" ) + match_str + grammar.T( "'" );
 
-				ret.debug_msg.emplace_back( std::format( "Rule {}:{} is {}, matches {} with {} symbols.", it->rule_idx, cur_rule_desc, state_str, match_str, it->offset ) );
+				if constexpr( std::same_as<char, StringElemType> )
+					ret.debug_msg.emplace_back( std::format( "Rule {}:{} is {}, matches {} with {} symbols.", it->rule_idx, cur_rule_desc, state_str, match_str, it->offset ) );
+				if constexpr( std::same_as<wchar_t, StringElemType> )
+					ret.debug_msg.emplace_back( std::format( L"Rule {}:{} is {}, matches {} with {} symbols.", it->rule_idx, cur_rule_desc, state_str, match_str, it->offset ) );
 			}
 			//remove dup
 			std::sort( expect_charlist.begin(), expect_charlist.end() );
 			expect_charlist.erase( std::unique( expect_charlist.begin(), expect_charlist.end() ), expect_charlist.end() );
 
-			std::vector<std::string> expect_strlist;
+			std::vector<StringType> expect_strlist;
 			expect_strlist.reserve( expect_charlist.size() );
 			for( int ch : expect_charlist )
 			{
@@ -648,33 +673,42 @@ public:
 			}
 			std::sort( expect_strlist.begin(), expect_strlist.end() );
 
-			std::string expect_str, special_str;
+			StringType expect_str, special_str;
 			expect_str.reserve( expect_strlist.size() );
 			for( auto& s : expect_strlist )
 				expect_str += s;
 			ret.expect_rawstr = expect_str;
 			//compress expect_str
-			if( auto pos = expect_str.find( "0123456789" ); pos != std::string::npos )
+			if( auto pos = expect_str.find( grammar.T( "0123456789" ) ); pos != StringType::npos )
 			{
 				expect_str.erase( pos, 10 );
-				special_str += "[0-9]";
+				special_str += grammar.T( "[0-9]" );
 			}
-			if( auto pos = expect_str.find( "abcdefghijklmnopqrstuvwxyz" ); pos != std::string::npos )
+			if( auto pos = expect_str.find( grammar.T( "abcdefghijklmnopqrstuvwxyz" ) ); pos != StringType::npos )
 			{
 				expect_str.erase( pos, 26 );
-				special_str += "[a-z]";
+				special_str += grammar.T( "[a-z]" );
 			}
-			if( auto pos = expect_str.find( "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ); pos != std::string::npos )
+			if( auto pos = expect_str.find( grammar.T( "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ) ); pos != StringType::npos )
 			{
 				expect_str.erase( pos, 26 );
-				special_str += "[A-Z]";
+				special_str += grammar.T( "[A-Z]" );
 			}
 			auto tmp = expect_str;
 			expect_str = special_str;
-			for( char ch : tmp )
-				expect_str += std::format( "{}'{}'", expect_str.empty() ? "" : ",", ch );
+			for( StringElemType ch : tmp )
+				expect_str += std::format( grammar.T( "{}'{}'" ).c_str(), grammar.T( expect_str.empty() ? "" : "," ), ch );
 
-			ret.usr_msg = std::format( "Syntax Error: unexpected '{}' at column {}, expect {}.", ret.ch, ret.pos, expect_str );
+			if constexpr( std::same_as<char, StringElemType> )
+			{
+				ret.usr_msg_without_col = std::format( "Syntax Error: unexpected '{}', expect {}.", ret.ch, expect_str );
+				ret.usr_msg = std::format( "Syntax Error: unexpected '{}' at column {}, expect {}.", ret.ch, ret.pos, expect_str );
+			}
+			if constexpr( std::same_as<wchar_t, StringElemType> )
+			{
+				ret.usr_msg_without_col = std::format( L"Syntax Error: unexpected '{}', expect {}.", ret.ch, expect_str );
+				ret.usr_msg = std::format( L"Syntax Error: unexpected '{}' at column {}, expect {}.", ret.ch, ret.pos, expect_str );
+			}
 
 			return ret;
 		}
@@ -750,12 +784,24 @@ private:
 		}
 	}
 };
+
+template <grammar_type T = WGrammar<>>
+using WCFGparser = CFGparser<T>;
+
 template <typename T>
 concept cfg_type = std::is_base_of_v<CFGparser<typename T::Grammar>, T>;
 
 namespace CFGtool
 {
 inline std::vector<int> string2vector( const std::string& s )
+{
+	std::vector<int> text;
+	text.reserve( s.size() );
+	for( auto e : s )
+		text.emplace_back( e );
+	return text;
+};
+inline std::vector<int> string2vector( const std::wstring& s )
 {
 	std::vector<int> text;
 	text.reserve( s.size() );
@@ -836,10 +882,10 @@ std::vector<int> toPostorderSequence( const Parser& cfg, const std::set<int>& ta
 	return seq;
 }
 template <cfg_type Parser>
-std::string toPostorderExprString( const Parser& cfg, const std::set<int>& targetNT )
+typename Parser::StringType toPostorderExprString( const Parser& cfg, const std::set<int>& targetNT )
 {
 	auto q = toPostorderSequence( cfg, targetNT );
-	std::ostringstream ss;
+	typename Parser::StringStreamType ss;
 	for( int idx : q )
 		ss << cfg.GetGrammar().toString( cfg.GetText( cfg.GetNode( idx ) ) ) << ',';
 	return ss.str();
