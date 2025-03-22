@@ -50,6 +50,7 @@
   <ItemGroup>
     <ClCompile Include="CFGparser.cpp" />
     <ClCompile Include="Graph.cpp" />
+    <ClCompile Include="Hungary.cpp" />
     <ClCompile Include="MathTest.cpp" />
     <ClCompile Include="MatrixTest.cpp" />
     <ClCompile Include="BlockList.cpp" />
