@@ -697,7 +697,12 @@ public:
 			auto tmp = expect_str;
 			expect_str = special_str;
 			for( StringElemType ch : tmp )
-				expect_str += std::format( grammar.T( "{}'{}'" ).c_str(), grammar.T( expect_str.empty() ? "" : "," ), ch );
+			{
+				if constexpr( std::same_as<char, StringElemType> )
+					expect_str += std::format( "{}'{}'", ( expect_str.empty() ? "" : "," ), ch );
+				if constexpr( std::same_as<wchar_t, StringElemType> )
+					expect_str += std::format( L"{}'{}'", ( expect_str.empty() ? L"" : L"," ), ch );
+			}
 
 			if constexpr( std::same_as<char, StringElemType> )
 			{
