@@ -189,6 +189,7 @@
     <ClInclude Include="defrag_memory_resource.h" />
     <ClInclude Include="CFGparser.h" />
     <ClInclude Include="Hungary.h" />
+    <ClInclude Include="RMQ.h" />
     <ClInclude Include="Tarjan.h" />
     <ClInclude Include="MixedIntegerLinearProgram.h" />
     <ClInclude Include="SimplexMethod.h" />

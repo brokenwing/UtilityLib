@@ -68,6 +68,7 @@
     <ClCompile Include="MultipleIndexing.cpp" />
     <ClCompile Include="SimplexMethod.cpp" />
     <ClCompile Include="MixedIntegerLinearProgram.cpp" />
+    <ClCompile Include="RMQ.cpp" />
     <ClCompile Include="Tarjan.cpp" />
     <ClCompile Include="ULongInt.cpp" />
     <ClCompile Include="VecUtil.cpp" />
