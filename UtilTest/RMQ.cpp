@@ -1,6 +1,36 @@
 #include "pch.h"
 #include "RMQ.h"
 
+TEST( RMQ, empty )
+{
+    RMQ<int> x;
+}
+TEST( RMQ, set_compare )
+{
+	struct CMP
+	{
+		bool flag = false;
+		bool operator()( const int a, const int b ) const
+		{
+            return ( a < b ) ^ flag;
+		}
+	};
+    {
+        RMQ<int, CMP> rmq( CMP( true ) );
+        std::vector<int> data = { 1, 2, 3, 4, 5 };
+        rmq.initialize( data );
+        ASSERT_TRUE( rmq.query( 0, 4 ).has_value() );
+        EXPECT_EQ( rmq.query( 0, 4 ).value(), 5 ); // 整个数组最大值
+    }
+    {
+        RMQ<int, CMP> rmq( CMP( false ) );
+        std::vector<int> data = { 1, 2, 3, 4, 5 };
+        rmq.initialize( data );
+        ASSERT_TRUE( rmq.query( 0, 4 ).has_value() );
+        EXPECT_EQ( rmq.query( 0, 4 ).value(), 1 );
+    }
+}
+
 // --- 最小值查询测试 (默认比较器 std::less<T>) ---
 
 // 测试构造函数和空数组情况

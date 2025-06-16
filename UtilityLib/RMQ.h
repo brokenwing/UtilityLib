@@ -31,10 +31,12 @@ private:
 	}
 
 public:
+	RMQ( const Compare cmp = Compare() ) :comp( cmp )
+	{}
 	// 构造函数：接受一个常量引用作为原始数组，进行预处理
 	// 数据在预处理阶段存储在类内部的st和log_table中
 	// 同时初始化比较器实例
-	RMQ( const std::vector<T>& arr )
+	RMQ( const std::vector<T>& arr, const Compare cmp = Compare() ) :comp( cmp )
 	{
 		initialize( arr );
 	}
